@@ -274,4 +274,1255 @@ const defaultLibrary = () => ({
       {id: uid(), text: "Valves labeled / routing verified"},
       {id: uid(), text: "Bonding plan confirmed (as applicable)"},
     ]},
-    { id: uid(), name: "Ba
+    { id: uid(), name: "Backfill Inspection", checks: [
+      {id: uid(), text: "Backfill material acceptable (no debris)"},
+      {id: uid(), text: "Compaction steps followed"},
+      {id: uid(), text: "Rough grade drainage direction confirmed"},
+    ]},
+    { id: uid(), name: "Equipment Set Inspection", checks: [
+      {id: uid(), text: "Pad level & service clearances confirmed"},
+      {id: uid(), text: "Plumbing tidy / unions accessible"},
+      {id: uid(), text: "Electrical/bonding completed (as required)"},
+    ]},
+    { id: uid(), name: "Deck Framing Inspection", checks: [
+      {id: uid(), text: "Forms set to elevations / slope verified"},
+      {id: uid(), text: "Reinforcement placed per spec"},
+      {id: uid(), text: "Expansion joints planned / placed"},
+    ]},
+    { id: uid(), name: "Kool Deck inspection", checks: [
+      {id: uid(), text: "Surface prep complete"},
+      {id: uid(), text: "Finish uniform / no weak spots"},
+      {id: uid(), text: "Edges clean / transitions neat"},
+    ]},
+  ]
+});
+
+const defaultRoster = () => ({
+  approvers: [
+    {id: uid(), name: "Warren"},
+    {id: uid(), name: "Superintendent"},
+    {id: uid(), name: "Service Manager"},
+  ]
+});
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw){
+      return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
+    }
+    const parsed = JSON.parse(raw);
+    parsed.roster ??= defaultRoster();
+    parsed.roster.approvers ??= [];
+    parsed.library ??= defaultLibrary();
+    parsed.projects ??= [];
+    parsed.discrepancies ??= [];
+    return parsed;
+  } catch(e){
+    return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
+  }
+}
+function saveState(){
+  state._lastSaved = Date.now();
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  renderAll();
+}
+
+let state = loadState();
+let selectedProjectId = null;
+
+// UI elements
+const elProjectList = document.getElementById("projectList");
+const elDetailTitle = document.getElementById("detailTitle");
+const elDetailPane  = document.getElementById("detailPane");
+const elStatPill    = document.getElementById("statPill");
+const elSearch = document.getElementById("projectSearch");
+const elSort   = document.getElementById("projectSort");
+
+document.getElementById("btnAddProject").addEventListener("click", () => openAddProject());
+document.getElementById("btnDeleteProject").addEventListener("click", () => deleteSelectedProject());
+document.getElementById("btnEditLibrary").addEventListener("click", () => openLibraryEditor());
+document.getElementById("btnEditRoster").addEventListener("click", () => openRosterEditor());
+document.getElementById("btnDiscrepancies").addEventListener("click", () => openDiscrepancyCenter());
+
+document.getElementById("btnExport").addEventListener("click", () => exportBackup());
+document.getElementById("fileImport").addEventListener("change", (e) => importBackup(e));
+document.getElementById("btnReset").addEventListener("click", () => resetAll());
+
+elSearch.addEventListener("input", () => renderProjects());
+elSort.addEventListener("change", () => renderProjects());
+
+// Modal controls
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalBody = document.getElementById("modalBody");
+document.getElementById("btnCloseModal").addEventListener("click", closeModal);
+modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
+
+function openModal(title, bodyNode){
+  modalTitle.textContent = title;
+  modalBody.innerHTML = "";
+  modalBody.appendChild(bodyNode);
+  modal.style.display = "flex";
+}
+function closeModal(){ modal.style.display = "none"; }
+
+function renderAll(){
+  renderProjects();
+  renderDetail();
+  elStatPill.textContent = `${state.projects.length} project${state.projects.length===1?"":"s"}`;
+}
+
+function touch(p){ p.updatedAt = Date.now(); }
+
+function projectProgress(p){
+  const phases = state.library.phases;
+  let total = 0, done = 0;
+  for(const ph of phases){
+    for(const c of ph.checks){
+      total++;
+      if(p.qa?.[ph.id]?.[c.id]) done++;
+    }
+  }
+  const pct = total ? Math.round((done/total)*100) : 0;
+  return {done,total,pct};
+}
+
+function openCountForProject(projectId){
+  return state.discrepancies.filter(d => d.projectId===projectId && d.status!=="Resolved").length;
+}
+
+function renderProjects(){
+  const q = elSearch.value.trim().toLowerCase();
+  const sort = elSort.value;
+
+  let projects = [...state.projects];
+  if(q) projects = projects.filter(p => (p.name||"").toLowerCase().includes(q));
+
+  projects.sort((a,b) => {
+    if(sort==="updated_desc") return (b.updatedAt||0) - (a.updatedAt||0);
+    if(sort==="name_asc") return (a.name||"").localeCompare(b.name||"");
+    if(sort==="name_desc") return (b.name||"").localeCompare(a.name||"");
+    if(sort==="created_desc") return (b.createdAt||0) - (a.createdAt||0);
+    if(sort==="created_asc") return (a.createdAt||0) - (b.createdAt||0);
+    return 0;
+  });
+
+  elProjectList.innerHTML = "";
+  if(!projects.length){
+    const empty = document.createElement("div");
+    empty.className = "mutedNote";
+    empty.textContent = q ? "No projects match your search." : "No projects yet. Click “+ Add” to start.";
+    elProjectList.appendChild(empty);
+    return;
+  }
+
+  for(const p of projects){
+    const item = document.createElement("div");
+    item.className = "item" + (p.id===selectedProjectId ? " active" : "");
+    item.addEventListener("click", () => { selectedProjectId = p.id; renderAll(); });
+
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = p.name || "Untitled Project";
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
+    const ph = state.library.phases.find(x => x.id === p.currentPhaseId) || state.library.phases[0];
+    const prog = projectProgress(p);
+    const openDisc = openCountForProject(p.id);
+
+    meta.appendChild(chip(`Phase`, ph ? ph.name : "—"));
+    meta.appendChild(chip(`QA`, `${prog.pct}%`));
+    meta.appendChild(chip(`Open Discrep.`, String(openDisc)));
+    meta.appendChild(chip(`Updated`, new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString()));
+
+    item.appendChild(title);
+    item.appendChild(meta);
+    elProjectList.appendChild(item);
+  }
+}
+
+function chip(k,v){
+  const c = document.createElement("span");
+  c.className = "chip";
+  c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
+  return c;
+}
+
+function renderDetail(){
+  const p = state.projects.find(x => x.id === selectedProjectId);
+  if(!p){
+    elDetailTitle.textContent = "Select a project";
+    elDetailPane.innerHTML = `<div class="mutedNote">Choose a project on the left. Or click “+ Add”.</div>`;
+    return;
+  }
+  p.qa ??= {}; p.signoff ??= {}; p.notes ??= {}; p.builder ??= {name:"", email:""};
+  if(!p.currentPhaseId && state.library.phases[0]) p.currentPhaseId = state.library.phases[0].id;
+
+  elDetailTitle.textContent = p.name || "Untitled Project";
+
+  const container = document.createElement("div");
+
+  // Top controls
+  const top = document.createElement("div");
+  top.className = "twoCol";
+
+  const left = document.createElement("div");
+  left.innerHTML = `<label>Current Phase</label><select id="selPhase"></select>`;
+
+  const right = document.createElement("div");
+  right.innerHTML = `<label>Rename Project</label><input id="inpProjectName" value="${escapeAttr(p.name||"")}" />`;
+
+  top.appendChild(left); top.appendChild(right);
+  container.appendChild(top);
+
+  const selPhase = left.querySelector("#selPhase");
+  for(const ph of state.library.phases){
+    const opt = document.createElement("option");
+    opt.value = ph.id;
+    opt.textContent = ph.name;
+    if(ph.id === p.currentPhaseId) opt.selected = true;
+    selPhase.appendChild(opt);
+  }
+  selPhase.addEventListener("change", () => { p.currentPhaseId = selPhase.value; touch(p); saveState(); });
+
+  const inpName = right.querySelector("#inpProjectName");
+  inpName.addEventListener("input", () => { p.name = inpName.value; touch(p); saveState(); });
+
+  container.appendChild(divHr());
+
+  // Builder info (for discrepancy report sending)
+  const builderBox = document.createElement("div");
+  builderBox.className = "phaseBox";
+  builderBox.innerHTML = `
+    <div class="phaseTop">
+      <div>
+        <div class="phaseName">Builder / Vendor Contact (for discrepancy reports)</div>
+        <div class="small">Optional, but recommended.</div>
+      </div>
+    </div>
+    <div class="twoCol" style="margin-top:10px;">
+      <div>
+        <label>Builder Name</label>
+        <input id="builderName" value="${escapeAttr(p.builder.name||"")}" placeholder="e.g., ABC Pools - John" />
+      </div>
+      <div>
+        <label>Builder Email</label>
+        <input id="builderEmail" value="${escapeAttr(p.builder.email||"")}" placeholder="name@company.com" />
+      </div>
+    </div>
+  `;
+  builderBox.querySelector("#builderName").addEventListener("input", (e)=>{ p.builder.name = e.target.value; touch(p); saveState(); });
+  builderBox.querySelector("#builderEmail").addEventListener("input", (e)=>{ p.builder.email = e.target.value; touch(p); saveState(); });
+  container.appendChild(builderBox);
+
+  // Phases
+  for(const ph of state.library.phases){
+    const box = document.createElement("div");
+    box.className = "phaseBox";
+
+    const prog = phaseProgress(p, ph);
+
+    const head = document.createElement("div");
+    head.className = "phaseTop";
+    head.innerHTML = `
+      <div>
+        <div class="phaseName">${escapeHtml(ph.name)}</div>
+        <div class="small">${prog.done}/${prog.total} checks complete • ${prog.pct}%</div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" data-action="markAll" data-ph="${ph.id}">Mark all</button>
+        <button class="btn ghost" data-action="clearAll" data-ph="${ph.id}">Clear</button>
+        <button class="btn warn" data-action="newDisc" data-ph="${ph.id}">+ Discrepancy</button>
+      </div>
+    `;
+    box.appendChild(head);
+
+    const checks = document.createElement("div");
+    checks.className = "checks";
+    for(const c of ph.checks){
+      const row = document.createElement("div");
+      row.className = "checkRow";
+      const checked = !!(p.qa?.[ph.id]?.[c.id]);
+      row.innerHTML = `
+        <input type="checkbox" ${checked ? "checked":""} data-ph="${ph.id}" data-ch="${c.id}">
+        <div class="txt">${escapeHtml(c.text)}</div>
+      `;
+      const cb = row.querySelector("input[type='checkbox']");
+      cb.addEventListener("change", () => {
+        p.qa[ph.id] ??= {};
+        p.qa[ph.id][c.id] = cb.checked;
+        touch(p); saveState();
+      });
+      checks.appendChild(row);
+    }
+    box.appendChild(checks);
+
+    // Notes + signoff
+    const bottom = document.createElement("div");
+    bottom.style.marginTop = "10px";
+    bottom.className = "twoCol";
+
+    const notes = document.createElement("div");
+    notes.innerHTML = `
+      <label>Notes (Phase)</label>
+      <textarea data-ph="${ph.id}" placeholder="Crew notes, issues, rework required, etc.">${escapeHtml(p.notes?.[ph.id] || "")}</textarea>
+    `;
+    const ta = notes.querySelector("textarea");
+    ta.addEventListener("input", () => {
+      p.notes[ph.id] = ta.value;
+      touch(p); saveState();
+    });
+
+    const sign = document.createElement("div");
+    const s = p.signoff?.[ph.id] || {};
+    sign.innerHTML = `
+      <label>QA Signoff</label>
+      <div class="twoCol">
+        <div>
+          <label style="margin-bottom:6px;">Approved By</label>
+          <select data-ph="${ph.id}" data-field="approverId" id="appr_${ph.id}"></select>
+        </div>
+        <div>
+          <label style="margin-bottom:6px;">Date</label>
+          <input data-ph="${ph.id}" data-field="date" type="date" value="${escapeAttr(s.date||"")}" />
+        </div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn ok" data-action="setToday" data-ph="${ph.id}">Set date = Today</button>
+        <button class="btn bad" data-action="clearSign" data-ph="${ph.id}">Clear signoff</button>
+      </div>
+      <div class="mutedNote" style="margin-top:10px;">Edit the dropdown list using “Edit QA Roster”.</div>
+    `;
+
+    // Fill dropdown
+    const sel = sign.querySelector(`#appr_${CSS.escape(ph.id)}`);
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = "— Select approver —";
+    sel.appendChild(emptyOpt);
+
+    for(const a of state.roster.approvers){
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.name;
+      if(a.id === s.approverId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+
+    sel.addEventListener("change", () => {
+      p.signoff[ph.id] ??= {};
+      p.signoff[ph.id].approverId = sel.value || "";
+      touch(p); saveState();
+    });
+
+    sign.querySelectorAll("input").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const phid = inp.getAttribute("data-ph");
+        const field = inp.getAttribute("data-field");
+        p.signoff[phid] ??= {};
+        p.signoff[phid][field] = inp.value;
+        touch(p); saveState();
+      });
+    });
+
+    bottom.appendChild(notes);
+    bottom.appendChild(sign);
+    box.appendChild(bottom);
+
+    container.appendChild(box);
+  }
+
+  // Button handlers inside detail
+  container.querySelectorAll("button[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const action = btn.getAttribute("data-action");
+      const phid = btn.getAttribute("data-ph");
+      const ph = state.library.phases.find(x => x.id === phid);
+      if(!ph) return;
+
+      if(action==="markAll"){
+        p.qa[phid] ??= {};
+        for(const c of ph.checks) p.qa[phid][c.id] = true;
+        touch(p); saveState();
+      }
+      if(action==="clearAll"){
+        p.qa[phid] = {};
+        touch(p); saveState();
+      }
+      if(action==="setToday"){
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth()+1).padStart(2,"0");
+        const dd = String(today.getDate()).padStart(2,"0");
+        p.signoff[phid] ??= {};
+        p.signoff[phid].date = `${yyyy}-${mm}-${dd}`;
+        touch(p); saveState();
+      }
+      if(action==="clearSign"){
+        p.signoff[phid] = {};
+        touch(p); saveState();
+      }
+      if(action==="newDisc"){
+        openNewDiscrepancy(p.id, phid);
+      }
+    });
+  });
+
+  elDetailPane.innerHTML = "";
+  elDetailPane.appendChild(container);
+}
+
+function phaseProgress(p, ph){
+  const total = ph.checks.length;
+  let done = 0;
+  for(const c of ph.checks) if(p.qa?.[ph.id]?.[c.id]) done++;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  return {done,total,pct};
+}
+
+function divHr(){ const d=document.createElement("div"); d.className="hr"; return d; }
+
+function openAddProject(){
+  const body = document.createElement("div");
+  body.innerHTML = `
+    <div>
+      <label>Project / Customer Name</label>
+      <input id="newProjectName" placeholder="e.g., Smith Pool - Richmond Hill" />
+    </div>
+    <div class="hr"></div>
+    <div>
+      <label>Starting Phase</label>
+      <select id="newProjectPhase"></select>
+      <div class="mutedNote" style="margin-top:8px;">You can change the phase later. QA checks are per-phase.</div>
+    </div>
+    <div class="hr"></div>
+    <div class="twoCol">
+      <div>
+        <label>Builder Name (optional)</label>
+        <input id="newBuilderName" placeholder="e.g., ABC Pools - John" />
+      </div>
+      <div>
+        <label>Builder Email (optional)</label>
+        <input id="newBuilderEmail" placeholder="name@company.com" />
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ok" id="btnCreate">Create Project</button>
+      <button class="btn ghost" id="btnCancel">Cancel</button>
+    </div>
+  `;
+
+  const sel = body.querySelector("#newProjectPhase");
+  for(const ph of state.library.phases){
+    const opt = document.createElement("option");
+    opt.value = ph.id;
+    opt.textContent = ph.name;
+    sel.appendChild(opt);
+  }
+
+  body.querySelector("#btnCancel").addEventListener("click", closeModal);
+  body.querySelector("#btnCreate").addEventListener("click", () => {
+    const name = body.querySelector("#newProjectName").value.trim();
+    const phaseId = body.querySelector("#newProjectPhase").value;
+    const builderName = body.querySelector("#newBuilderName").value.trim();
+    const builderEmail = body.querySelector("#newBuilderEmail").value.trim();
+
+    const now = Date.now();
+    const proj = {
+      id: uid(),
+      name: name || "Untitled Project",
+      createdAt: now,
+      updatedAt: now,
+      currentPhaseId: phaseId,
+      qa: {},
+      signoff: {},
+      notes: {},
+      builder: {name: builderName, email: builderEmail}
+    };
+    state.projects.unshift(proj);
+    selectedProjectId = proj.id;
+    saveState();
+    closeModal();
+  });
+
+  openModal("Add Project", body);
+}
+
+function deleteSelectedProject(){
+  const p = state.projects.find(x => x.id === selectedProjectId);
+  if(!p) return;
+
+  const body = document.createElement("div");
+  body.innerHTML = `
+    <div class="danger" style="font-weight:800;">Delete this project?</div>
+    <div class="mutedNote" style="margin-top:8px;">
+      This will permanently remove <b>${escapeHtml(p.name)}</b> and its discrepancies from this browser storage.
+      Export a backup first if you might need it later.
+    </div>
+    <div class="hr"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn bad" id="confirmDel">Yes, delete</button>
+      <button class="btn ghost" id="cancelDel">Cancel</button>
+    </div>
+  `;
+  body.querySelector("#cancelDel").addEventListener("click", closeModal);
+  body.querySelector("#confirmDel").addEventListener("click", () => {
+    state.projects = state.projects.filter(x => x.id !== selectedProjectId);
+    state.discrepancies = state.discrepancies.filter(d => d.projectId !== selectedProjectId);
+    selectedProjectId = state.projects[0]?.id || null;
+    saveState();
+    closeModal();
+  });
+  openModal("Confirm Delete", body);
+}
+
+function openRosterEditor(){
+  const body = document.createElement("div");
+  body.innerHTML = `
+    <div class="mutedNote">This controls the “Approved By” dropdown for QA signoffs.</div>
+    <div class="hr"></div>
+    <div id="rosterList" class="list"></div>
+    <div class="hr"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ok" id="addApprover">+ Add Approver</button>
+      <button class="btn ghost" id="doneRoster">Done</button>
+    </div>
+  `;
+
+  const rosterList = body.querySelector("#rosterList");
+  function draw(){
+    rosterList.innerHTML = "";
+    if(!state.roster.approvers.length){
+      const m = document.createElement("div");
+      m.className = "mutedNote";
+      m.textContent = "No approvers yet. Click “+ Add Approver”.";
+      rosterList.appendChild(m);
+    }
+    for(const a of state.roster.approvers){
+      const row = document.createElement("div");
+      row.className = "checkRow";
+      row.innerHTML = `
+        <div style="flex:1">
+          <label style="margin-bottom:6px;">Approver Name</label>
+          <input data-id="${a.id}" value="${escapeAttr(a.name)}" />
+        </div>
+        <button class="btn bad" data-del="${a.id}">Delete</button>
+      `;
+      row.querySelector("input").addEventListener("input", (e)=>{
+        a.name = e.target.value;
+        saveStateNoRender();
+        renderDetail();
+        renderProjects();
+      });
+      row.querySelector("button").addEventListener("click", ()=>{
+        // remove from roster, and clear any signoffs using this id
+        state.roster.approvers = state.roster.approvers.filter(x => x.id !== a.id);
+        for(const p of state.projects){
+          for(const phid of Object.keys(p.signoff || {})){
+            if(p.signoff[phid]?.approverId === a.id){
+              p.signoff[phid].approverId = "";
+            }
+          }
+        }
+        saveStateNoRender();
+        draw();
+        renderAll();
+      });
+      rosterList.appendChild(row);
+    }
+  }
+
+  function saveStateNoRender(){
+    state._lastSaved = Date.now();
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }
+
+  body.querySelector("#addApprover").addEventListener("click", ()=>{
+    state.roster.approvers.push({id: uid(), name:"New Approver"});
+    saveStateNoRender();
+    draw();
+    renderDetail();
+  });
+  body.querySelector("#doneRoster").addEventListener("click", ()=>{ saveState(); closeModal(); });
+
+  draw();
+  openModal("Edit QA Roster", body);
+}
+
+function openLibraryEditor(){
+  const body = document.createElement("div");
+
+  const header = document.createElement("div");
+  header.className = "mutedNote";
+  header.textContent = "Edit phases and sub-inspections here. Changes apply to all projects. Existing project QA data is kept when possible.";
+  body.appendChild(header);
+
+  body.appendChild(divHr());
+
+  const list = document.createElement("div");
+  list.className = "list";
+  body.appendChild(list);
+
+  function draw(){
+    list.innerHTML = "";
+
+    const addPhase = document.createElement("button");
+    addPhase.className = "btn ok";
+    addPhase.textContent = "+ Add Phase";
+    addPhase.addEventListener("click", () => {
+      state.library.phases.push({ id: uid(), name: "New Phase", checks: [] });
+      saveStateNoRender();
+      draw();
+    });
+    list.appendChild(addPhase);
+
+    for(const ph of state.library.phases){
+      const box = document.createElement("div");
+      box.className = "phaseBox";
+
+      const top = document.createElement("div");
+      top.className = "phaseTop";
+      top.innerHTML = `
+        <div style="flex:1; min-width:240px;">
+          <label>Phase Name</label>
+          <input data-ph="${ph.id}" class="phName" value="${escapeAttr(ph.name)}" />
+        </div>
+        <div class="row">
+          <button class="btn ghost" data-action="addCheck" data-ph="${ph.id}">+ Add Check</button>
+          <button class="btn bad" data-action="delPhase" data-ph="${ph.id}">Delete Phase</button>
+        </div>
+      `;
+      box.appendChild(top);
+
+      const checks = document.createElement("div");
+      checks.className = "checks";
+      if(!ph.checks.length){
+        const m = document.createElement("div");
+        m.className = "mutedNote";
+        m.textContent = "No checks yet. Click “+ Add Check”.";
+        checks.appendChild(m);
+      } else {
+        for(const c of ph.checks){
+          const row = document.createElement("div");
+          row.className = "checkRow";
+          row.innerHTML = `
+            <div style="flex:1">
+              <input data-ph="${ph.id}" data-ch="${c.id}" class="chText" value="${escapeAttr(c.text)}" />
+            </div>
+            <button class="btn bad" data-action="delCheck" data-ph="${ph.id}" data-ch="${c.id}">Delete</button>
+          `;
+          checks.appendChild(row);
+        }
+      }
+      box.appendChild(checks);
+      list.appendChild(box);
+    }
+
+    list.querySelectorAll("input.phName").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const phid = inp.getAttribute("data-ph");
+        const ph = state.library.phases.find(x => x.id === phid);
+        if(!ph) return;
+        ph.name = inp.value;
+        saveStateNoRender();
+        renderProjects();
+        renderDetail();
+      });
+    });
+
+    list.querySelectorAll("input.chText").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const phid = inp.getAttribute("data-ph");
+        const chid = inp.getAttribute("data-ch");
+        const ph = state.library.phases.find(x => x.id === phid);
+        const ch = ph?.checks.find(x => x.id === chid);
+        if(!ch) return;
+        ch.text = inp.value;
+        saveStateNoRender();
+        renderDetail();
+      });
+    });
+
+    list.querySelectorAll("button[data-action]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const action = btn.getAttribute("data-action");
+        const phid = btn.getAttribute("data-ph");
+        const ph = state.library.phases.find(x => x.id === phid);
+        if(!ph) return;
+
+        if(action === "addCheck"){
+          ph.checks.push({ id: uid(), text: "New Check" });
+          saveStateNoRender();
+          draw();
+          renderDetail();
+        }
+
+        if(action === "delCheck"){
+          const chid = btn.getAttribute("data-ch");
+          ph.checks = ph.checks.filter(x => x.id !== chid);
+          for(const p of state.projects){
+            if(p.qa?.[phid]) delete p.qa[phid][chid];
+          }
+          saveStateNoRender();
+          draw();
+          renderDetail();
+        }
+
+        if(action === "delPhase"){
+          state.library.phases = state.library.phases.filter(x => x.id !== phid);
+          for(const p of state.projects){
+            if(p.qa) delete p.qa[phid];
+            if(p.signoff) delete p.signoff[phid];
+            if(p.notes) delete p.notes[phid];
+            if(p.currentPhaseId === phid) p.currentPhaseId = state.library.phases[0]?.id || null;
+          }
+          // also detach discrepancies tied to deleted phase
+          for(const d of state.discrepancies){
+            if(d.phaseId === phid) d.phaseId = "";
+          }
+          saveStateNoRender();
+          draw();
+          renderAll();
+        }
+      });
+    });
+  }
+
+  function saveStateNoRender(){
+    state._lastSaved = Date.now();
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }
+
+  draw();
+  body.appendChild(divHr());
+  const footer = document.createElement("div");
+  footer.className = "mutedNote";
+  footer.textContent = "After editing the library, export a backup so you always have a copy of your latest template + projects.";
+  body.appendChild(footer);
+
+  openModal("Edit Library (Phases + Checks)", body);
+}
+
+/* -------------------------
+   Discrepancies
+--------------------------*/
+function openDiscrepancyCenter(){
+  const p = state.projects.find(x => x.id === selectedProjectId);
+
+  const body = document.createElement("div");
+  const header = document.createElement("div");
+  header.className = "mutedNote";
+  header.textContent = p ? `Discrepancies for: ${p.name}` : "Select a project first.";
+  body.appendChild(header);
+
+  body.appendChild(divHr());
+
+  const actions = document.createElement("div");
+  actions.style.display="flex"; actions.style.gap="10px"; actions.style.flexWrap="wrap";
+  actions.innerHTML = `
+    <button class="btn ok" id="btnNewDisc">+ New Discrepancy</button>
+    <button class="btn blue" id="btnBuilderReport">Generate Builder Report</button>
+    <button class="btn ghost" id="btnClose">Close</button>
+  `;
+  body.appendChild(actions);
+
+  const listWrap = document.createElement("div");
+  listWrap.style.marginTop="12px";
+  body.appendChild(listWrap);
+
+  function draw(){
+    listWrap.innerHTML = "";
+    if(!p){
+      listWrap.innerHTML = `<div class="mutedNote">No project selected.</div>`;
+      return;
+    }
+    const discs = state.discrepancies
+      .filter(d => d.projectId===p.id)
+      .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
+
+    if(!discs.length){
+      listWrap.innerHTML = `<div class="mutedNote">No discrepancies yet. Click “+ New Discrepancy”.</div>`;
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Phase</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Title</th>
+          <th>Assigned</th>
+          <th>Due</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
+
+    for(const d of discs){
+      const tr = document.createElement("tr");
+      const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
+      tr.innerHTML = `
+        <td>${escapeHtml(new Date(d.createdAt).toLocaleDateString())}</td>
+        <td>${escapeHtml(phName)}</td>
+        <td>${escapeHtml(d.severity||"Medium")}</td>
+        <td>${statusTag(d.status||"Open")}</td>
+        <td>${escapeHtml(d.title||"")}</td>
+        <td>${escapeHtml(d.assignedTo||"")}</td>
+        <td>${escapeHtml(d.dueDate||"")}</td>
+        <td><button class="btn ghost" data-edit="${d.id}">Edit</button></td>
+      `;
+      tr.querySelector("button").addEventListener("click", ()=> openEditDiscrepancy(d.id, draw));
+      tbody.appendChild(tr);
+    }
+
+    listWrap.appendChild(table);
+  }
+
+  actions.querySelector("#btnClose").addEventListener("click", closeModal);
+  actions.querySelector("#btnNewDisc").addEventListener("click", ()=> {
+    if(!p) return;
+    openNewDiscrepancy(p.id, p.currentPhaseId || state.library.phases[0]?.id || "");
+    // redraw after closing handled in save
+  });
+  actions.querySelector("#btnBuilderReport").addEventListener("click", ()=> {
+    if(!p) return;
+    openBuilderReport(p.id);
+  });
+
+  draw();
+  openModal("Discrepancy Reports", body);
+}
+
+function statusTag(status){
+  const s = (status||"Open");
+  let cls = "open";
+  if(s==="In Progress") cls="progress";
+  if(s==="Resolved") cls="resolved";
+  return `<span class="tag ${cls}">${escapeHtml(s)}</span>`;
+}
+
+function openNewDiscrepancy(projectId, phaseId){
+  const p = state.projects.find(x=>x.id===projectId);
+  const body = document.createElement("div");
+  body.innerHTML = `
+    <div class="twoCol">
+      <div>
+        <label>Phase</label>
+        <select id="discPhase"></select>
+      </div>
+      <div>
+        <label>Severity</label>
+        <select id="discSeverity">
+          <option>Low</option>
+          <option selected>Medium</option>
+          <option>High</option>
+          <option>Critical</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px;">
+      <div>
+        <label>Status</label>
+        <select id="discStatus">
+          <option selected>Open</option>
+          <option>In Progress</option>
+          <option>Resolved</option>
+        </select>
+      </div>
+      <div>
+        <label>Due Date</label>
+        <input type="date" id="discDue" />
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px;">
+      <div>
+        <label>Assigned To (builder/crew)</label>
+        <input id="discAssigned" placeholder="e.g., Mike / ABC Builder" />
+      </div>
+      <div>
+        <label>Reported By</label>
+        <input id="discReportedBy" placeholder="e.g., Warren" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Title</label>
+      <input id="discTitle" placeholder="Short: what’s wrong?" />
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Description / Required Fix</label>
+      <textarea id="discDesc" placeholder="Describe discrepancy, exact correction needed, and any specs."></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Photo Links (optional)</label>
+      <textarea id="discPhotos" placeholder="Paste links (one per line). Example: Google Photos / iCloud / Dropbox share links."></textarea>
+      <div class="mutedNote" style="margin-top:6px;">Tip: upload photos anywhere and paste share links here.</div>
+    </div>
+
+    <div class="hr"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ok" id="saveDisc">Save Discrepancy</button>
+      <button class="btn ghost" id="cancelDisc">Cancel</button>
+    </div>
+  `;
+
+  // fill phase select
+  const sel = body.querySelector("#discPhase");
+  for(const ph of state.library.phases){
+    const opt = document.createElement("option");
+    opt.value = ph.id;
+    opt.textContent = ph.name;
+    if(ph.id === phaseId) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  body.querySelector("#cancelDisc").addEventListener("click", closeModal);
+  body.querySelector("#saveDisc").addEventListener("click", ()=> {
+    const now = Date.now();
+    const d = {
+      id: uid(),
+      projectId,
+      phaseId: sel.value,
+      createdAt: now,
+      updatedAt: now,
+      title: body.querySelector("#discTitle").value.trim(),
+      description: body.querySelector("#discDesc").value.trim(),
+      severity: body.querySelector("#discSeverity").value,
+      status: body.querySelector("#discStatus").value,
+      assignedTo: body.querySelector("#discAssigned").value.trim(),
+      dueDate: body.querySelector("#discDue").value,
+      reportedBy: body.querySelector("#discReportedBy").value.trim(),
+      photoLinks: body.querySelector("#discPhotos").value.split("\n").map(s=>s.trim()).filter(Boolean),
+      builderEmailOverride: ""
+    };
+    state.discrepancies.unshift(d);
+    // touch project
+    const p = state.projects.find(x=>x.id===projectId);
+    if(p) touch(p);
+    saveState();
+    closeModal();
+  });
+
+  openModal("New Discrepancy", body);
+}
+
+function openEditDiscrepancy(discId, onDone){
+  const d = state.discrepancies.find(x=>x.id===discId);
+  if(!d) return;
+
+  const body = document.createElement("div");
+  body.innerHTML = `
+    <div class="twoCol">
+      <div>
+        <label>Phase</label>
+        <select id="discPhase"></select>
+      </div>
+      <div>
+        <label>Severity</label>
+        <select id="discSeverity">
+          <option>Low</option>
+          <option>Medium</option>
+          <option>High</option>
+          <option>Critical</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px;">
+      <div>
+        <label>Status</label>
+        <select id="discStatus">
+          <option>Open</option>
+          <option>In Progress</option>
+          <option>Resolved</option>
+        </select>
+      </div>
+      <div>
+        <label>Due Date</label>
+        <input type="date" id="discDue" />
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:12px;">
+      <div>
+        <label>Assigned To</label>
+        <input id="discAssigned" />
+      </div>
+      <div>
+        <label>Reported By</label>
+        <input id="discReportedBy" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Title</label>
+      <input id="discTitle" />
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Description / Required Fix</label>
+      <textarea id="discDesc"></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Photo Links</label>
+      <textarea id="discPhotos"></textarea>
+    </div>
+
+    <div class="hr"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ok" id="saveDisc">Save</button>
+      <button class="btn bad" id="delDisc">Delete</button>
+      <button class="btn ghost" id="cancelDisc">Close</button>
+    </div>
+  `;
+
+  // fill
+  const sel = body.querySelector("#discPhase");
+  for(const ph of state.library.phases){
+    const opt = document.createElement("option");
+    opt.value = ph.id;
+    opt.textContent = ph.name;
+    if(ph.id === d.phaseId) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  body.querySelector("#discSeverity").value = d.severity || "Medium";
+  body.querySelector("#discStatus").value = d.status || "Open";
+  body.querySelector("#discDue").value = d.dueDate || "";
+  body.querySelector("#discAssigned").value = d.assignedTo || "";
+  body.querySelector("#discReportedBy").value = d.reportedBy || "";
+  body.querySelector("#discTitle").value = d.title || "";
+  body.querySelector("#discDesc").value = d.description || "";
+  body.querySelector("#discPhotos").value = (d.photoLinks || []).join("\n");
+
+  body.querySelector("#cancelDisc").addEventListener("click", ()=>{ closeModal(); onDone?.(); });
+  body.querySelector("#saveDisc").addEventListener("click", ()=>{
+    d.phaseId = sel.value;
+    d.severity = body.querySelector("#discSeverity").value;
+    d.status = body.querySelector("#discStatus").value;
+    d.dueDate = body.querySelector("#discDue").value;
+    d.assignedTo = body.querySelector("#discAssigned").value.trim();
+    d.reportedBy = body.querySelector("#discReportedBy").value.trim();
+    d.title = body.querySelector("#discTitle").value.trim();
+    d.description = body.querySelector("#discDesc").value.trim();
+    d.photoLinks = body.querySelector("#discPhotos").value.split("\n").map(s=>s.trim()).filter(Boolean);
+    d.updatedAt = Date.now();
+    saveState();
+    onDone?.();
+    closeModal();
+  });
+  body.querySelector("#delDisc").addEventListener("click", ()=>{
+    const ok = confirm("Delete this discrepancy?");
+    if(!ok) return;
+    state.discrepancies = state.discrepancies.filter(x=>x.id!==d.id);
+    saveState();
+    onDone?.();
+    closeModal();
+  });
+
+  openModal("Edit Discrepancy", body);
+}
+
+function openBuilderReport(projectId){
+  const p = state.projects.find(x=>x.id===projectId);
+  if(!p) return;
+
+  const discs = state.discrepancies
+    .filter(d => d.projectId===projectId && (d.status||"Open") !== "Resolved")
+    .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
+
+  const body = document.createElement("div");
+
+  const builderEmail = (p.builder?.email || "").trim();
+  const builderName = (p.builder?.name || "").trim();
+
+  const subject = `Discrepancy Report – ${p.name}`;
+  const intro = `Builder Discrepancy Report\nProject: ${p.name}\nBuilder: ${builderName || "—"}\nDate: ${new Date().toLocaleDateString()}\n`;
+
+  const lines = [];
+  lines.push(intro);
+  if(!discs.length){
+    lines.push("No OPEN discrepancies at this time.");
+  } else {
+    discs.forEach((d, idx)=>{
+      const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
+      lines.push(`\n${idx+1}) ${d.title || "(No title)"}`);
+      lines.push(`   Phase: ${phName}`);
+      lines.push(`   Severity: ${d.severity || "Medium"} | Status: ${d.status || "Open"}`);
+      if(d.assignedTo) lines.push(`   Assigned: ${d.assignedTo}`);
+      if(d.dueDate) lines.push(`   Due: ${d.dueDate}`);
+      if(d.reportedBy) lines.push(`   Reported By: ${d.reportedBy}`);
+      if(d.description) lines.push(`   Details: ${d.description}`);
+      if((d.photoLinks||[]).length){
+        lines.push(`   Photos:`);
+        d.photoLinks.forEach(link => lines.push(`     - ${link}`));
+      }
+    });
+  }
+  lines.push("\nRequested Action: Please confirm receipt and provide ETA for each correction.\n");
+
+  const emailText = lines.join("\n");
+
+  // UI
+  const top = document.createElement("div");
+  top.className = "twoCol";
+  top.innerHTML = `
+    <div>
+      <label>To (Builder Email)</label>
+      <input id="toEmail" value="${escapeAttr(builderEmail)}" placeholder="name@company.com" />
+      <div class="mutedNote" style="margin-top:6px;">This is pulled from the project’s Builder Email.</div>
+    </div>
+    <div>
+      <label>Subject</label>
+      <input id="subj" value="${escapeAttr(subject)}" />
+    </div>
+  `;
+  body.appendChild(top);
+
+  const ta = document.createElement("div");
+  ta.style.marginTop = "12px";
+  ta.innerHTML = `
+    <label>Report Body (Copy/Paste)</label>
+    <textarea id="reportBody" class="mono" style="min-height:280px;"></textarea>
+    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn blue" id="copyBtn">Copy Report</button>
+      <button class="btn ok" id="printBtn">Print / Save as PDF</button>
+      <button class="btn ghost" id="closeBtn">Close</button>
+    </div>
+    <div class="mutedNote" style="margin-top:10px;">
+      If you want, you can paste this directly into an email to the builder.
+    </div>
+  `;
+  body.appendChild(ta);
+
+  const reportBody = ta.querySelector("#reportBody");
+  reportBody.value = emailText;
+
+  ta.querySelector("#closeBtn").addEventListener("click", closeModal);
+
+  ta.querySelector("#copyBtn").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(reportBody.value);
+      alert("Copied to clipboard.");
+    } catch(e){
+      // fallback select
+      reportBody.focus(); reportBody.select();
+      alert("Select + copy (Ctrl+C). Clipboard permission blocked.");
+    }
+  });
+
+  ta.querySelector("#printBtn").addEventListener("click", ()=>{
+    const to = body.querySelector("#toEmail").value.trim();
+    const subj = body.querySelector("#subj").value.trim();
+    const content = reportBody.value;
+
+    const w = window.open("", "_blank");
+    w.document.write(`
+      <html><head><title>${escapeHtml(subj)}</title>
+      <style>
+        body{font-family: Arial, sans-serif; padding:24px;}
+        h1{font-size:18px; margin:0 0 6px;}
+        .meta{color:#444; font-size:12px; margin-bottom:16px;}
+        pre{white-space:pre-wrap; font-size:12px; line-height:1.35;}
+      </style>
+      </head><body>
+        <h1>${escapeHtml(subj)}</h1>
+        <div class="meta">To: ${escapeHtml(to || "—")}</div>
+        <pre>${escapeHtml(content)}</pre>
+        <script>window.print();</script>
+      </body></html>
+    `);
+    w.document.close();
+  });
+
+  openModal("Builder Discrepancy Report", body);
+}
+
+/* -------------------------
+   Export/Import/Reset
+--------------------------*/
+function exportBackup(){
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `construction-qa-backup_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(e){
+  const file = e.target.files?.[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(String(reader.result || ""));
+      if(!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+      if(!parsed.library || !Array.isArray(parsed.library.phases)) throw new Error("Missing library");
+      parsed.roster ??= defaultRoster();
+      parsed.roster.approvers ??= [];
+      if(!Array.isArray(parsed.projects)) parsed.projects = [];
+      if(!Array.isArray(parsed.discrepancies)) parsed.discrepancies = [];
+      state = parsed;
+      selectedProjectId = state.projects[0]?.id || null;
+      saveState();
+      closeModal();
+    } catch(err){
+      alert("Import failed: " + (err.message || err));
+    } finally {
+      e.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAll(){
+  const ok = confirm("This will wipe all local data for this tracker in this browser. Export a backup first. Continue?");
+  if(!ok) return;
+  localStorage.removeItem(LS_KEY);
+  state = { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
+  selectedProjectId = null;
+  renderAll();
+}
+
+/* -------------------------
+   Helpers
+--------------------------*/
+function escapeHtml(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
+
+/* -------------------------
+   Init
+--------------------------*/
+if(!selectedProjectId && state.projects[0]) selectedProjectId = state.projects[0].id;
+renderAll();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pool Sales Milestone Tracker (Single-File)</title>
+  <title>Pool Milestones + QA Tracker (Single-File)</title>
   <style>
     :root{
       --bg:#0b0c10; --card:#12131a; --muted:#a7adbb; --text:#f3f5ff;
@@ -106,8 +106,8 @@
 </head>
 <body>
 <header>
-  <h1>Pool Sales Milestone Tracker</h1>
-  <div class="sub">Add pool-sale customers, set a construction start date, and track pre-start milestones + QA phases (saved locally in your browser).</div>
+  <h1>Pool Milestones + QA Tracker</h1>
+  <div class="sub">Milestones + QA phases for in-house tracking (saved locally in your browser). Export/Import for backups.</div>
 </header>
 
 <div class="wrap">
@@ -136,6 +136,7 @@
         <div class="row wrap" style="margin-top:10px">
           <button class="btn secondary" id="editTemplateBtn">Milestone template</button>
           <button class="btn secondary" id="editQATemplateBtn">QA template</button>
+          <button class="btn secondary" id="refreshAllBtn" title="Merge latest templates into ALL customers (safe: adds new items, keeps existing)">Refresh ALL</button>
           <button class="btn secondary" id="exportBtn">Export</button>
           <button class="btn secondary" id="importBtn">Import</button>
           <button class="btn secondary" id="resetBtn" title="Clears local data">Reset</button>
@@ -156,7 +157,8 @@
             <div class="hint" id="custSubtitle">Pick a customer on the left, or add a new one.</div>
           </div>
           <div class="row wrap" id="custActions" style="display:none">
-            <button class="btn secondary" id="recomputeBtn" title="Recalculate due dates based on template days-before-start">Recompute due dates</button>
+            <button class="btn secondary" id="refreshOneBtn" title="Merge latest templates into this customer (safe)">Refresh this customer</button>
+            <button class="btn secondary" id="recomputeBtn" title="Recalculate due dates based on milestone template days-before-start">Recompute due dates</button>
             <button class="btn danger" id="deleteCustomerBtn">Delete</button>
             <button class="btn secondary" id="redReportBtn">Red tasks</button>
           </div>
@@ -211,12 +213,11 @@
             </div>
             <button class="btn secondary" id="qaCopyOpenIssuesBtn">Copy open issues</button>
           </div>
-
           <div id="qaBody"></div>
         </div>
 
         <div id="panelEmpty" class="muted">
-          Add a customer to start tracking pre-construction milestones.
+          Add a customer to start tracking milestones and QA.
         </div>
       </div>
     </section>
@@ -227,7 +228,7 @@
 <dialog id="dlgCustomer">
   <div class="dlg-hd">
     <div style="font-weight:900">Add customer</div>
-    <div class="hint">Creates a new checklist from your milestone template + a QA phase checklist from the QA template.</div>
+    <div class="hint">Creates milestones + QA phases from the templates.</div>
   </div>
   <div class="dlg-bd">
     <div class="two">
@@ -259,7 +260,7 @@
   </div>
 </dialog>
 
-<!-- TEMPLATE DIALOG -->
+<!-- MILESTONE TEMPLATE DIALOG -->
 <dialog id="dlgTemplate">
   <div class="dlg-hd">
     <div style="font-weight:900">Milestone template</div>
@@ -268,7 +269,7 @@
   <div class="dlg-bd">
     <div class="row wrap" style="justify-content:space-between">
       <button class="btn" id="tAdd">+ Add template item</button>
-      <div class="hint">Existing customers are not auto-updated.</div>
+      <div class="hint">Refresh buttons merge changes into existing customers safely.</div>
     </div>
     <div class="hr"></div>
     <div id="templateList" style="display:flex; flex-direction:column; gap:10px; max-height:52vh; overflow:auto; padding-right:6px"></div>
@@ -283,7 +284,7 @@
 <dialog id="dlgQATemplate">
   <div class="dlg-hd">
     <div style="font-weight:900">QA template (Phases + checks + approver dropdown)</div>
-    <div class="hint">Defaults applied to NEW customers only. Drag the handle (≡) to reorder phases/checks.</div>
+    <div class="hint">Drag the handle (≡) to reorder phases/checks. Refresh buttons merge changes into existing customers.</div>
   </div>
   <div class="dlg-bd">
     <div class="two" style="align-items:start">
@@ -339,22 +340,17 @@
     <div style="font-weight:900">Red Tasks Report</div>
     <div class="hint">Incomplete milestones that need attention.</div>
   </div>
-
   <div class="dlg-bd">
     <div class="row wrap" style="justify-content:space-between; gap:10px">
       <label class="pill" style="cursor:pointer">
         <input type="checkbox" id="overdueOnly" style="width:auto; margin:0 8px 0 0" />
         Overdue only
       </label>
-
       <button class="btn secondary" id="copyRedReportBtn">Copy report</button>
     </div>
-
     <div class="hr"></div>
-
     <div id="redReportBody" style="display:flex; flex-direction:column; gap:10px"></div>
   </div>
-
   <div class="dlg-ft">
     <button class="btn secondary" id="closeRedReportBtn">Close</button>
   </div>
@@ -362,7 +358,7 @@
 
 <script>
   // ----------------- Data Model -----------------
-  const LS_KEY = "pool_sales_milestone_tracker_singlefile_v2"; // bumped version
+  const LS_KEY = "pool_milestones_qa_tracker_singlefile_v1";
 
   const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
 
@@ -382,6 +378,8 @@
     const dd = String(d.getDate()).padStart(2,"0");
     return `${yyyy}-${mm}-${dd}`;
   };
+
+  const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
   const DEFAULT_TEMPLATE = [
     { id: uid("t"), title: "Financing clear-to-start received", notes: "", defaultDaysBeforeStart: 30 },
@@ -443,25 +441,19 @@
     ]
   };
 
-  const clone = (obj) => JSON.parse(JSON.stringify(obj));
-
   const migrateState = (parsed) => {
-    // Allow importing old v1 backups
-    if (!parsed || typeof parsed !== "object") return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
-
+    if (!parsed || typeof parsed !== "object") {
+      return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
+    }
     if (!Array.isArray(parsed.template)) parsed.template = DEFAULT_TEMPLATE;
-    if (!Array.isArray(parsed.customers)) parsed.customers = [];
-
-    // QA template
     if (!parsed.qaTemplate || !Array.isArray(parsed.qaTemplate.phases) || !Array.isArray(parsed.qaTemplate.approvers)) {
       parsed.qaTemplate = DEFAULT_QA_TEMPLATE;
     }
-
-    // Ensure customer QA fields exist (for older customers)
+    if (!Array.isArray(parsed.customers)) parsed.customers = [];
     parsed.customers.forEach(c => {
-      c.qa ??= null; // IMPORTANT: null means "no snapshot"; we won't backfill automatically (all new only)
+      c.milestones ??= [];
+      c.qa ??= null;
     });
-
     return parsed;
   };
 
@@ -501,6 +493,17 @@
     render();
   };
 
+  $("refreshAllBtn").onclick = () => {
+    if (!confirm("Refresh ALL customers from current milestone + QA templates? (Safe: adds new items, keeps history)")) return;
+    state.customers.forEach(c => {
+      refreshCustomerMilestonesFromTemplate(c);
+      refreshCustomerQAFromTemplate(c);
+    });
+    saveState();
+    render();
+    alert("Refreshed ALL customers.");
+  };
+
   $("search").addEventListener("input", () => renderCustomers());
 
   // Import dialog
@@ -509,8 +512,7 @@
     const raw = $("importText").value.trim();
     if (!raw) return alert("Paste JSON first.");
     try {
-      const parsed = migrateState(JSON.parse(raw));
-      state = parsed;
+      state = migrateState(JSON.parse(raw));
       activeCustomerId = state.customers[0]?.id ?? null;
       saveState();
       $("dlgImport").close();
@@ -531,6 +533,17 @@
     render();
   };
 
+  $("refreshOneBtn").onclick = () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    refreshCustomerMilestonesFromTemplate(c);
+    refreshCustomerQAFromTemplate(c);
+    saveState();
+    renderRight();
+    renderCustomers();
+    alert("Refreshed this customer.");
+  };
+
   $("recomputeBtn").onclick = () => {
     const c = getActiveCustomer();
     if (!c?.startDate) return alert("Set a start date first (Details tab).");
@@ -546,6 +559,7 @@
     if (!title || !title.trim()) return;
     c.milestones.unshift({
       id: uid("m"),
+      tplId: null,
       title: title.trim(),
       notes: "",
       dueDate: "",
@@ -614,6 +628,7 @@
         : "";
       return {
         id: uid("m"),
+        tplId: t.id,               // link milestone to template id for refresh merges
         title: t.title,
         notes: t.notes || "",
         dueDate,
@@ -622,14 +637,13 @@
       };
     });
 
-    // IMPORTANT: NEW only -> snapshot QA template into customer.qa
     const qaSnap = {
       approvers: clone(state.qaTemplate.approvers),
       phases: clone(state.qaTemplate.phases),
-      done: {},        // phaseId -> checkId -> bool
-      notes: {},       // phaseId -> string
-      signoff: {},     // phaseId -> { approverId, date }
-      issues: []       // {id, phaseId, title, desc, status, createdAt}
+      done: {},
+      notes: {},
+      signoff: {},
+      issues: []
     };
 
     const customer = {
@@ -680,7 +694,6 @@
   }
   $("qaTCancel").onclick = () => $("dlgQATemplate").close();
   $("qaTSave").onclick = () => {
-    // Trim + clean
     state.qaTemplate.approvers = state.qaTemplate.approvers
       .map(a => ({...a, name:(a.name||"").trim()}))
       .filter(a => a.name.length > 0);
@@ -697,7 +710,7 @@
 
     saveState();
     $("dlgQATemplate").close();
-    render(); // only affects new customers going forward
+    render();
   };
 
   $("qaAddApproverBtn").onclick = () => {
@@ -710,7 +723,6 @@
     renderQATemplateEditor();
   };
 
-  // Simple drag/drop reorder helper (works for phases and checks)
   function makeDraggableList(container, items, onReorder){
     let dragIndex = null;
 
@@ -846,16 +858,124 @@
           };
           checksHost.appendChild(row);
         });
-
-        // Enable drag reorder checks
         makeDraggableList(checksHost, p.checks, () => renderQATemplateEditor());
       }
 
       phaseHost.appendChild(card);
     });
 
-    // Enable drag reorder phases
     makeDraggableList(phaseHost, state.qaTemplate.phases, () => renderQATemplateEditor());
+  }
+
+  // ----------------- Refresh (Milestones + QA) -----------------
+  function refreshCustomerMilestonesFromTemplate(c){
+    if (!c) return;
+
+    // Ensure tplId exists on template milestones in customer. Older data may not have it.
+    c.milestones.forEach(m => { if (!("tplId" in m)) m.tplId = null; });
+
+    // Build maps
+    const byTplId = new Map(c.milestones.filter(m=>m.tplId).map(m => [m.tplId, m]));
+    const byTitle = new Map(c.milestones.map(m => [m.title, m]));
+
+    const newList = [];
+
+    // Template order first
+    state.template.forEach(t => {
+      let existing = byTplId.get(t.id) || byTitle.get(t.title);
+
+      if (!existing){
+        const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
+          ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
+          : "";
+        existing = {
+          id: uid("m"),
+          tplId: t.id,
+          title: t.title,
+          notes: t.notes || "",
+          dueDate,
+          completed: false,
+          completedAt: ""
+        };
+      } else {
+        // keep history but update tplId + title/notes
+        existing.tplId = t.id;
+        existing.title = t.title;
+        // only overwrite notes if existing notes empty (safer)
+        if (!existing.notes) existing.notes = t.notes || "";
+      }
+
+      newList.push(existing);
+    });
+
+    // Append any custom milestones not in template (keep them)
+    c.milestones.forEach(m => {
+      const isInNewList = newList.some(x => x.id === m.id);
+      if (!isInNewList) newList.push(m);
+    });
+
+    c.milestones = newList;
+  }
+
+  function refreshCustomerQAFromTemplate(c){
+    if (!c) return;
+
+    if (!c.qa || typeof c.qa !== "object"){
+      c.qa = {
+        approvers: clone(state.qaTemplate.approvers),
+        phases: clone(state.qaTemplate.phases),
+        done: {},
+        notes: {},
+        signoff: {},
+        issues: []
+      };
+      return;
+    }
+
+    // Approvers merge by id
+    const existingApprovers = new Map((c.qa.approvers || []).map(a => [a.id, a]));
+    const mergedApprovers = [];
+    state.qaTemplate.approvers.forEach(a => {
+      if (existingApprovers.has(a.id)) mergedApprovers.push(existingApprovers.get(a.id));
+      else mergedApprovers.push(clone(a));
+    });
+    (c.qa.approvers || []).forEach(a => {
+      if (!mergedApprovers.some(x => x.id === a.id)) mergedApprovers.push(a);
+    });
+    c.qa.approvers = mergedApprovers;
+
+    // Phases + checks merge by id, preserve done/notes/signoff/issues
+    const existingPhases = new Map((c.qa.phases || []).map(p => [p.id, p]));
+    const mergedPhases = [];
+
+    state.qaTemplate.phases.forEach(tp => {
+      const ep = existingPhases.get(tp.id);
+      if (!ep){
+        mergedPhases.push(clone(tp));
+        return;
+      }
+      const mergedPhase = { ...ep, name: tp.name };
+
+      const existingChecks = new Map((ep.checks || []).map(ch => [ch.id, ch]));
+      const mergedChecks = [];
+      (tp.checks || []).forEach(tch => {
+        const ech = existingChecks.get(tch.id);
+        if (ech) mergedChecks.push({ ...ech, text: tch.text });
+        else mergedChecks.push(clone(tch));
+      });
+      (ep.checks || []).forEach(ch => {
+        if (!mergedChecks.some(x => x.id === ch.id)) mergedChecks.push(ch);
+      });
+
+      mergedPhase.checks = mergedChecks;
+      mergedPhases.push(mergedPhase);
+    });
+
+    (c.qa.phases || []).forEach(p => {
+      if (!mergedPhases.some(x => x.id === p.id)) mergedPhases.push(p);
+    });
+
+    c.qa.phases = mergedPhases;
   }
 
   // ----------------- Logic -----------------
@@ -867,9 +987,12 @@
     const c = state.customers.find(x => x.id === customerId);
     if (!c?.startDate) return;
 
-    const map = new Map(state.template.map(t => [t.title, t.defaultDaysBeforeStart]));
+    // Prefer tplId mapping; fallback to title if needed
+    const mapByTplId = new Map(state.template.map(t => [t.id, t.defaultDaysBeforeStart]));
+    const mapByTitle = new Map(state.template.map(t => [t.title, t.defaultDaysBeforeStart]));
+
     c.milestones.forEach(m => {
-      const days = map.get(m.title);
+      const days = (m.tplId && mapByTplId.has(m.tplId)) ? mapByTplId.get(m.tplId) : mapByTitle.get(m.title);
       if (typeof days === "number" && c.startDate) {
         m.dueDate = addDays(c.startDate, -days);
       }
@@ -908,10 +1031,7 @@
     const overdueOnly = $("overdueOnly").checked;
 
     let items = c.milestones.filter(m => !m.completed);
-
-    if (overdueOnly) {
-      items = items.filter(m => m.dueDate && m.dueDate < today);
-    }
+    if (overdueOnly) items = items.filter(m => m.dueDate && m.dueDate < today);
 
     items.sort((a, b) => {
       if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
@@ -976,15 +1096,8 @@
   };
 
   // ----------------- QA Rendering + Actions -----------------
-  function ensureCustomerQASnapshot(c){
-    // If they imported old customers (qa=null), we DO NOT auto-apply template (all new only).
-    // But we can allow manual creation if needed later.
-    if (c.qa && typeof c.qa === "object") return true;
-    return false;
-  }
-
   function qaCounts(c){
-    if (!ensureCustomerQASnapshot(c)) return { total:0, done:0, signTotal:0, signDone:0, openIssues:0 };
+    if (!c.qa) return { total:0, done:0, signTotal:0, signDone:0, openIssues:0 };
 
     let total=0, done=0;
     c.qa.phases.forEach(p=>{
@@ -1002,14 +1115,17 @@
     });
 
     const openIssues = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved").length;
-
     return { total, done, signTotal, signDone, openIssues };
   }
 
   $("qaCopyOpenIssuesBtn").onclick = async () => {
     const c = getActiveCustomer();
     if (!c) return;
-    if (!ensureCustomerQASnapshot(c)) return alert("This customer was created before QA was added. QA applies to NEW customers only.");
+
+    if (!c.qa){
+      alert("No QA data for this customer yet. Refresh this customer to create QA from template.");
+      return;
+    }
 
     const open = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved");
     const lines = open.map(i => {
@@ -1033,11 +1149,11 @@
 
     if (!c) return;
 
-    if (!ensureCustomerQASnapshot(c)){
+    if (!c.qa){
       host.innerHTML = `
         <div class="mrow pending">
-          <div class="title">QA not available for this older customer</div>
-          <div class="small">You selected “all new only.” QA phases apply to NEW customers created after QA was added.</div>
+          <div class="title">No QA snapshot for this customer yet</div>
+          <div class="small">Click <b>Refresh this customer</b> to create QA from the current QA template.</div>
         </div>
       `;
       $("qaProgressPill").textContent = `QA: 0/0 (0%)`;
@@ -1098,7 +1214,6 @@
               <button class="btn secondary" data-action="today" data-phase="${phase.id}">Set today</button>
               <button class="btn danger" data-action="clearSign" data-phase="${phase.id}">Clear</button>
             </div>
-            <div class="hint" style="margin-top:8px">Approver list is editable in <b>QA template</b>.</div>
           </div>
         </div>
 
@@ -1129,14 +1244,14 @@
             c.qa.done[phase.id] ??= {};
             c.qa.done[phase.id][ch.id] = e.target.checked;
             saveState();
-            renderQA(); // ok to re-render on checkbox clicks
+            renderQA();
             renderCustomers();
           };
           list.appendChild(row);
         });
       }
 
-      // notes (do NOT re-render as you type)
+      // notes (no re-render)
       const ta = card.querySelector("[data-notes]");
       ta.value = c.qa.notes?.[phase.id] || "";
       ta.oninput = () => {
@@ -1151,7 +1266,7 @@
       opt0.value = ""; opt0.textContent = "— Select —";
       sel.appendChild(opt0);
 
-      c.qa.approvers.forEach(a=>{
+      (c.qa.approvers || []).forEach(a=>{
         const o = document.createElement("option");
         o.value = a.id;
         o.textContent = a.name;
@@ -1169,7 +1284,7 @@
         renderCustomers();
       };
 
-      // signoff date (no re-render needed)
+      // signoff date
       const date = card.querySelector("[data-date]");
       date.value = s.date || "";
       date.oninput = () => {
@@ -1396,12 +1511,6 @@
     }
 
     [...c.milestones]
-      .sort((a, b) => {
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return 0;
-      })
       .forEach(m => {
         const isOverdue = !m.completed && m.dueDate && m.dueDate < today;
 

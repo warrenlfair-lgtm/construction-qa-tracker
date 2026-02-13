@@ -321,12 +321,16 @@ function loadState(){
   } catch(e){
     return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
   }
-}
-function saveState(){
+function saveStateNoRender(){
   state._lastSaved = Date.now();
   localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function saveState(){
+  saveStateNoRender();
   renderAll();
 }
+
 
 let state = loadState();
 let selectedProjectId = null;
@@ -573,7 +577,7 @@ function renderDetail(){
     const ta = notes.querySelector("textarea");
     ta.addEventListener("input", () => {
       p.notes[ph.id] = ta.value;
-      touch(p); saveState();
+      touch(p); saveStateNoRender();
     });
 
     const sign = document.createElement("div");
@@ -1516,6 +1520,12 @@ function escapeHtml(str){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+  function moveItem(arr, from, to){
+  if(to < 0 || to >= arr.length) return;
+  const item = arr.splice(from, 1)[0];
+  arr.splice(to, 0, item);
+}
+
 function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
 
 /* -------------------------

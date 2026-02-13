@@ -58,7 +58,6 @@
       color:var(--muted);
       font-size:12px;
     }
-
     main{padding:18px 16px 40px}
     .grid{display:grid; grid-template-columns: 340px 1fr; gap:16px;}
     @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
@@ -169,7 +168,6 @@
 
 <main>
   <div class="wrap grid">
-    <!-- LEFT: Projects -->
     <section class="card">
       <h2>
         <span>Projects</span>
@@ -196,12 +194,11 @@
         <div class="list" id="projectList"></div>
         <div class="hr"></div>
         <div class="mutedNote">
-          Tip: Export a backup weekly. Import restores everything (projects + library + discrepancies + roster).
+          Tip: Export weekly. Import restores everything (projects + library + discrepancies + roster).
         </div>
       </div>
     </section>
 
-    <!-- RIGHT: Detail -->
     <section class="card">
       <h2>
         <span id="detailTitle">Select a project</span>
@@ -209,19 +206,16 @@
           <button class="btn warn" id="btnDiscrepancies">Discrepancy Reports</button>
           <button class="btn" id="btnEditLibrary">Edit Library</button>
           <button class="btn" id="btnEditRoster">Edit QA Roster</button>
-          <button class="btn bad" id="btnDeleteProject" title="Delete selected project">Delete Project</button>
+          <button class="btn bad" id="btnDeleteProject">Delete Project</button>
         </div>
       </h2>
       <div class="content" id="detailPane">
-        <div class="mutedNote">
-          Add a project on the left to start tracking QA per phase.
-        </div>
+        <div class="mutedNote">Add a project on the left to start tracking QA per phase.</div>
       </div>
     </section>
   </div>
 </main>
 
-<!-- Modal -->
 <div id="modal" style="position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:50; padding:18px;">
   <div class="card" style="width:min(980px, 100%); max-height:86vh; overflow:auto;">
     <h2>
@@ -233,84 +227,76 @@
 </div>
 
 <script>
-/**
- * state = {
- *   roster: { approvers: [ {id, name} ] },
- *   library: { phases: [ {id, name, checks:[{id, text}]} ] },
- *   projects: [ {id, name, createdAt, updatedAt, currentPhaseId, qa:{phaseId:{checkId:true}}, signoff:{phaseId:{approverId,date}}, notes:{phaseId:""}, builder:{name,email}} ],
- *   discrepancies: [ {id, projectId, phaseId, createdAt, updatedAt, title, description, severity, status, assignedTo, dueDate, photoLinks, reportedBy, builderEmailOverride} ]
- * }
- */
-const LS_KEY = "construction_qa_tracker_v2";
+const LS_KEY = "construction_qa_tracker_stable_v1";
 const uid = () => Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
 
-const defaultLibrary = () => ({
-  phases: [
-    { id: uid(), name: "Pre Construction", checks: [
-      {id: uid(), text: "Contract signed & scope verified"},
-      {id: uid(), text: "Engineering/plans approved (if required)"},
-      {id: uid(), text: "Equipment list verified (models/options)"},
-      {id: uid(), text: "Utility locate complete"},
-      {id: uid(), text: "Pre-build meeting complete / notes saved"},
-    ]},
-    { id: uid(), name: "Excavation", checks: [
-      {id: uid(), text: "Layout confirmed (orientation / setbacks)"},
-      {id: uid(), text: "Depths verified (laser)"},
-      {id: uid(), text: "Steps / shelves located correctly"},
-      {id: uid(), text: "Bond beam height confirmed"},
-    ]},
-    { id: uid(), name: "Shell/Wall Standing", checks: [
-      {id: uid(), text: "Walls plumb / square where applicable"},
-      {id: uid(), text: "Structural alignment verified"},
-      {id: uid(), text: "Penetrations / niches secured"},
-    ]},
-    { id: uid(), name: "Liner Hang", checks: [
-      {id: uid(), text: "Liner inspected (no defects)"},
-      {id: uid(), text: "Vacuum set & seams positioned correctly"},
-      {id: uid(), text: "Faceplates / gaskets ready & correct"},
-    ]},
-    { id: uid(), name: "Plumbing Inspection", checks: [
-      {id: uid(), text: "Pressure test completed & logged"},
-      {id: uid(), text: "Valves labeled / routing verified"},
-      {id: uid(), text: "Bonding plan confirmed (as applicable)"},
-    ]},
-    { id: uid(), name: "Backfill Inspection", checks: [
-      {id: uid(), text: "Backfill material acceptable (no debris)"},
-      {id: uid(), text: "Compaction steps followed"},
-      {id: uid(), text: "Rough grade drainage direction confirmed"},
-    ]},
-    { id: uid(), name: "Equipment Set Inspection", checks: [
-      {id: uid(), text: "Pad level & service clearances confirmed"},
-      {id: uid(), text: "Plumbing tidy / unions accessible"},
-      {id: uid(), text: "Electrical/bonding completed (as required)"},
-    ]},
-    { id: uid(), name: "Deck Framing Inspection", checks: [
-      {id: uid(), text: "Forms set to elevations / slope verified"},
-      {id: uid(), text: "Reinforcement placed per spec"},
-      {id: uid(), text: "Expansion joints planned / placed"},
-    ]},
-    { id: uid(), name: "Kool Deck inspection", checks: [
-      {id: uid(), text: "Surface prep complete"},
-      {id: uid(), text: "Finish uniform / no weak spots"},
-      {id: uid(), text: "Edges clean / transitions neat"},
-    ]},
-  ]
-});
+function defaultLibrary(){
+  return {
+    phases: [
+      { id: uid(), name: "Pre Construction", checks: [
+        {id: uid(), text: "Contract signed & scope verified"},
+        {id: uid(), text: "Engineering/plans approved (if required)"},
+        {id: uid(), text: "Equipment list verified (models/options)"},
+        {id: uid(), text: "Utility locate complete"},
+        {id: uid(), text: "Pre-build meeting complete / notes saved"},
+      ]},
+      { id: uid(), name: "Excavation", checks: [
+        {id: uid(), text: "Layout confirmed (orientation / setbacks)"},
+        {id: uid(), text: "Depths verified (laser)"},
+        {id: uid(), text: "Steps / shelves located correctly"},
+        {id: uid(), text: "Bond beam height confirmed"},
+      ]},
+      { id: uid(), name: "Shell/Wall Standing", checks: [
+        {id: uid(), text: "Walls plumb / square where applicable"},
+        {id: uid(), text: "Structural alignment verified"},
+        {id: uid(), text: "Penetrations / niches secured"},
+      ]},
+      { id: uid(), name: "Liner Hang", checks: [
+        {id: uid(), text: "Liner inspected (no defects)"},
+        {id: uid(), text: "Vacuum set & seams positioned correctly"},
+        {id: uid(), text: "Faceplates / gaskets ready & correct"},
+      ]},
+      { id: uid(), name: "Plumbing Inspection", checks: [
+        {id: uid(), text: "Pressure test completed & logged"},
+        {id: uid(), text: "Valves labeled / routing verified"},
+        {id: uid(), text: "Bonding plan confirmed (as applicable)"},
+      ]},
+      { id: uid(), name: "Backfill Inspection", checks: [
+        {id: uid(), text: "Backfill material acceptable (no debris)"},
+        {id: uid(), text: "Compaction steps followed"},
+        {id: uid(), text: "Rough grade drainage direction confirmed"},
+      ]},
+      { id: uid(), name: "Equipment Set Inspection", checks: [
+        {id: uid(), text: "Pad level & service clearances confirmed"},
+        {id: uid(), text: "Plumbing tidy / unions accessible"},
+        {id: uid(), text: "Electrical/bonding completed (as required)"},
+      ]},
+      { id: uid(), name: "Deck Framing Inspection", checks: [
+        {id: uid(), text: "Forms set to elevations / slope verified"},
+        {id: uid(), text: "Reinforcement placed per spec"},
+        {id: uid(), text: "Expansion joints planned / placed"},
+      ]},
+      { id: uid(), name: "Kool Deck inspection", checks: [
+        {id: uid(), text: "Surface prep complete"},
+        {id: uid(), text: "Finish uniform / no weak spots"},
+        {id: uid(), text: "Edges clean / transitions neat"},
+      ]},
+    ]
+  };
+}
 
-const defaultRoster = () => ({
-  approvers: [
+function defaultRoster(){
+  return { approvers: [
     {id: uid(), name: "Warren"},
     {id: uid(), name: "Superintendent"},
     {id: uid(), name: "Service Manager"},
-  ]
-});
+  ]};
+}
 
 function loadState(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(!raw){
-      return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
-    }
+    if(!raw) return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
     const parsed = JSON.parse(raw);
     parsed.roster ??= defaultRoster();
     parsed.roster.approvers ??= [];
@@ -321,21 +307,28 @@ function loadState(){
   } catch(e){
     return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
   }
+}
+
+let state = loadState();
+let selectedProjectId = state.projects[0]?.id || null;
+
 function saveStateNoRender(){
   state._lastSaved = Date.now();
   localStorage.setItem(LS_KEY, JSON.stringify(state));
 }
-
 function saveState(){
   saveStateNoRender();
   renderAll();
 }
 
+function touchProject(p){ p.updatedAt = Date.now(); }
 
-let state = loadState();
-let selectedProjectId = null;
+function moveItem(arr, from, to){
+  if(to < 0 || to >= arr.length) return;
+  const item = arr.splice(from, 1)[0];
+  arr.splice(to, 0, item);
+}
 
-// UI elements
 const elProjectList = document.getElementById("projectList");
 const elDetailTitle = document.getElementById("detailTitle");
 const elDetailPane  = document.getElementById("detailPane");
@@ -343,57 +336,67 @@ const elStatPill    = document.getElementById("statPill");
 const elSearch = document.getElementById("projectSearch");
 const elSort   = document.getElementById("projectSort");
 
-document.getElementById("btnAddProject").addEventListener("click", () => openAddProject());
-document.getElementById("btnDeleteProject").addEventListener("click", () => deleteSelectedProject());
-document.getElementById("btnEditLibrary").addEventListener("click", () => openLibraryEditor());
-document.getElementById("btnEditRoster").addEventListener("click", () => openRosterEditor());
-document.getElementById("btnDiscrepancies").addEventListener("click", () => openDiscrepancyCenter());
+document.getElementById("btnAddProject").addEventListener("click", openAddProject);
+document.getElementById("btnDeleteProject").addEventListener("click", deleteSelectedProject);
+document.getElementById("btnEditLibrary").addEventListener("click", openLibraryEditor);
+document.getElementById("btnEditRoster").addEventListener("click", openRosterEditor);
+document.getElementById("btnDiscrepancies").addEventListener("click", openDiscrepancyCenter);
+document.getElementById("btnExport").addEventListener("click", exportBackup);
+document.getElementById("fileImport").addEventListener("change", importBackup);
+document.getElementById("btnReset").addEventListener("click", resetAll);
+elSearch.addEventListener("input", renderProjects);
+elSort.addEventListener("change", renderProjects);
 
-document.getElementById("btnExport").addEventListener("click", () => exportBackup());
-document.getElementById("fileImport").addEventListener("change", (e) => importBackup(e));
-document.getElementById("btnReset").addEventListener("click", () => resetAll());
-
-elSearch.addEventListener("input", () => renderProjects());
-elSort.addEventListener("change", () => renderProjects());
-
-// Modal controls
 const modal = document.getElementById("modal");
 const modalTitle = document.getElementById("modalTitle");
 const modalBody = document.getElementById("modalBody");
 document.getElementById("btnCloseModal").addEventListener("click", closeModal);
-modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
+modal.addEventListener("click", (e)=>{ if(e.target===modal) closeModal(); });
 
-function openModal(title, bodyNode){
+function openModal(title, node){
   modalTitle.textContent = title;
   modalBody.innerHTML = "";
-  modalBody.appendChild(bodyNode);
+  modalBody.appendChild(node);
   modal.style.display = "flex";
 }
 function closeModal(){ modal.style.display = "none"; }
 
-function renderAll(){
-  renderProjects();
-  renderDetail();
-  elStatPill.textContent = `${state.projects.length} project${state.projects.length===1?"":"s"}`;
-}
+function divHr(){ const d=document.createElement("div"); d.className="hr"; return d; }
 
-function touch(p){ p.updatedAt = Date.now(); }
+function escapeHtml(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
 
 function projectProgress(p){
-  const phases = state.library.phases;
-  let total = 0, done = 0;
-  for(const ph of phases){
+  let total=0, done=0;
+  for(const ph of state.library.phases){
     for(const c of ph.checks){
       total++;
       if(p.qa?.[ph.id]?.[c.id]) done++;
     }
   }
-  const pct = total ? Math.round((done/total)*100) : 0;
-  return {done,total,pct};
+  return { total, done, pct: total ? Math.round((done/total)*100) : 0 };
+}
+function openDiscCount(projectId){
+  return state.discrepancies.filter(d => d.projectId===projectId && (d.status||"Open")!=="Resolved").length;
+}
+function chip(k,v){
+  const c=document.createElement("span");
+  c.className="chip";
+  c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
+  return c;
 }
 
-function openCountForProject(projectId){
-  return state.discrepancies.filter(d => d.projectId===projectId && d.status!=="Resolved").length;
+function renderAll(){
+  renderProjects();
+  renderDetail();
+  elStatPill.textContent = `${state.projects.length} project${state.projects.length===1?"":"s"}`;
 }
 
 function renderProjects(){
@@ -403,44 +406,44 @@ function renderProjects(){
   let projects = [...state.projects];
   if(q) projects = projects.filter(p => (p.name||"").toLowerCase().includes(q));
 
-  projects.sort((a,b) => {
-    if(sort==="updated_desc") return (b.updatedAt||0) - (a.updatedAt||0);
+  projects.sort((a,b)=>{
+    if(sort==="updated_desc") return (b.updatedAt||0)-(a.updatedAt||0);
     if(sort==="name_asc") return (a.name||"").localeCompare(b.name||"");
     if(sort==="name_desc") return (b.name||"").localeCompare(a.name||"");
-    if(sort==="created_desc") return (b.createdAt||0) - (a.createdAt||0);
-    if(sort==="created_asc") return (a.createdAt||0) - (b.createdAt||0);
+    if(sort==="created_desc") return (b.createdAt||0)-(a.createdAt||0);
+    if(sort==="created_asc") return (a.createdAt||0)-(b.createdAt||0);
     return 0;
   });
 
   elProjectList.innerHTML = "";
   if(!projects.length){
-    const empty = document.createElement("div");
-    empty.className = "mutedNote";
-    empty.textContent = q ? "No projects match your search." : "No projects yet. Click “+ Add” to start.";
-    elProjectList.appendChild(empty);
+    const m=document.createElement("div");
+    m.className="mutedNote";
+    m.textContent = q ? "No projects match your search." : "No projects yet. Click “+ Add”.";
+    elProjectList.appendChild(m);
     return;
   }
 
   for(const p of projects){
-    const item = document.createElement("div");
-    item.className = "item" + (p.id===selectedProjectId ? " active" : "");
-    item.addEventListener("click", () => { selectedProjectId = p.id; renderAll(); });
+    const item=document.createElement("div");
+    item.className="item"+(p.id===selectedProjectId?" active":"");
+    item.addEventListener("click", ()=>{ selectedProjectId=p.id; renderAll(); });
 
-    const title = document.createElement("div");
-    title.className = "title";
-    title.textContent = p.name || "Untitled Project";
+    const title=document.createElement("div");
+    title.className="title";
+    title.textContent=p.name||"Untitled Project";
 
-    const meta = document.createElement("div");
-    meta.className = "meta";
+    const meta=document.createElement("div");
+    meta.className="meta";
 
-    const ph = state.library.phases.find(x => x.id === p.currentPhaseId) || state.library.phases[0];
+    const ph = state.library.phases.find(x=>x.id===p.currentPhaseId) || state.library.phases[0];
     const prog = projectProgress(p);
-    const openDisc = openCountForProject(p.id);
+    const open = openDiscCount(p.id);
 
-    meta.appendChild(chip(`Phase`, ph ? ph.name : "—"));
-    meta.appendChild(chip(`QA`, `${prog.pct}%`));
-    meta.appendChild(chip(`Open Discrep.`, String(openDisc)));
-    meta.appendChild(chip(`Updated`, new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString()));
+    meta.appendChild(chip("Phase", ph?ph.name:"—"));
+    meta.appendChild(chip("QA", `${prog.pct}%`));
+    meta.appendChild(chip("Open Discrep.", String(open)));
+    meta.appendChild(chip("Updated", new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString()));
 
     item.appendChild(title);
     item.appendChild(meta);
@@ -448,58 +451,66 @@ function renderProjects(){
   }
 }
 
-function chip(k,v){
-  const c = document.createElement("span");
-  c.className = "chip";
-  c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
-  return c;
-}
-
 function renderDetail(){
-  const p = state.projects.find(x => x.id === selectedProjectId);
+  const p = state.projects.find(x=>x.id===selectedProjectId);
   if(!p){
-    elDetailTitle.textContent = "Select a project";
+    elDetailTitle.textContent="Select a project";
     elDetailPane.innerHTML = `<div class="mutedNote">Choose a project on the left. Or click “+ Add”.</div>`;
     return;
   }
-  p.qa ??= {}; p.signoff ??= {}; p.notes ??= {}; p.builder ??= {name:"", email:""};
+
+  p.qa ??= {};
+  p.signoff ??= {};
+  p.notes ??= {};
+  p.builder ??= {name:"", email:""};
   if(!p.currentPhaseId && state.library.phases[0]) p.currentPhaseId = state.library.phases[0].id;
 
   elDetailTitle.textContent = p.name || "Untitled Project";
+  const container=document.createElement("div");
 
-  const container = document.createElement("div");
-
-  // Top controls
-  const top = document.createElement("div");
-  top.className = "twoCol";
-
-  const left = document.createElement("div");
-  left.innerHTML = `<label>Current Phase</label><select id="selPhase"></select>`;
-
-  const right = document.createElement("div");
-  right.innerHTML = `<label>Rename Project</label><input id="inpProjectName" value="${escapeAttr(p.name||"")}" />`;
-
-  top.appendChild(left); top.appendChild(right);
+  // top controls
+  const top=document.createElement("div");
+  top.className="twoCol";
+  top.innerHTML = `
+    <div>
+      <label>Current Phase</label>
+      <select id="selPhase"></select>
+    </div>
+    <div>
+      <label>Rename Project</label>
+      <input id="inpProjectName" value="${escapeAttr(p.name||"")}" />
+    </div>
+  `;
   container.appendChild(top);
 
-  const selPhase = left.querySelector("#selPhase");
+  const selPhase = top.querySelector("#selPhase");
   for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
-    if(ph.id === p.currentPhaseId) opt.selected = true;
+    const opt=document.createElement("option");
+    opt.value=ph.id; opt.textContent=ph.name;
+    if(ph.id===p.currentPhaseId) opt.selected=true;
     selPhase.appendChild(opt);
   }
-  selPhase.addEventListener("change", () => { p.currentPhaseId = selPhase.value; touch(p); saveState(); });
+  selPhase.addEventListener("change", ()=>{
+    p.currentPhaseId = selPhase.value;
+    touchProject(p);
+    saveState(); // dropdown can re-render safely
+  });
 
-  const inpName = right.querySelector("#inpProjectName");
-  inpName.addEventListener("input", () => { p.name = inpName.value; touch(p); saveState(); });
+  const inpName = top.querySelector("#inpProjectName");
+  inpName.addEventListener("input", ()=>{
+    p.name = inpName.value;
+    touchProject(p);
+    saveStateNoRender(); // typing should NOT re-render
+    // update left list label without rebuilding full page:
+    renderProjects();
+    elDetailTitle.textContent = p.name || "Untitled Project";
+  });
 
   container.appendChild(divHr());
 
-  // Builder info (for discrepancy report sending)
-  const builderBox = document.createElement("div");
-  builderBox.className = "phaseBox";
+  // builder contact
+  const builderBox=document.createElement("div");
+  builderBox.className="phaseBox";
   builderBox.innerHTML = `
     <div class="phaseTop">
       <div>
@@ -518,23 +529,34 @@ function renderDetail(){
       </div>
     </div>
   `;
-  builderBox.querySelector("#builderName").addEventListener("input", (e)=>{ p.builder.name = e.target.value; touch(p); saveState(); });
-  builderBox.querySelector("#builderEmail").addEventListener("input", (e)=>{ p.builder.email = e.target.value; touch(p); saveState(); });
+  builderBox.querySelector("#builderName").addEventListener("input",(e)=>{
+    p.builder.name = e.target.value;
+    touchProject(p);
+    saveStateNoRender();
+  });
+  builderBox.querySelector("#builderEmail").addEventListener("input",(e)=>{
+    p.builder.email = e.target.value;
+    touchProject(p);
+    saveStateNoRender();
+  });
   container.appendChild(builderBox);
 
-  // Phases
+  // phases
   for(const ph of state.library.phases){
-    const box = document.createElement("div");
-    box.className = "phaseBox";
+    const box=document.createElement("div");
+    box.className="phaseBox";
 
-    const prog = phaseProgress(p, ph);
+    const total=ph.checks.length;
+    let done=0;
+    for(const c of ph.checks) if(p.qa?.[ph.id]?.[c.id]) done++;
+    const pct = total ? Math.round((done/total)*100) : 0;
 
-    const head = document.createElement("div");
-    head.className = "phaseTop";
-    head.innerHTML = `
+    const head=document.createElement("div");
+    head.className="phaseTop";
+    head.innerHTML=`
       <div>
         <div class="phaseName">${escapeHtml(ph.name)}</div>
-        <div class="small">${prog.done}/${prog.total} checks complete • ${prog.pct}%</div>
+        <div class="small">${done}/${total} checks complete • ${pct}%</div>
       </div>
       <div class="row">
         <button class="btn ghost" data-action="markAll" data-ph="${ph.id}">Mark all</button>
@@ -544,92 +566,86 @@ function renderDetail(){
     `;
     box.appendChild(head);
 
-    const checks = document.createElement("div");
-    checks.className = "checks";
+    const checks=document.createElement("div");
+    checks.className="checks";
     for(const c of ph.checks){
-      const row = document.createElement("div");
-      row.className = "checkRow";
-      const checked = !!(p.qa?.[ph.id]?.[c.id]);
-      row.innerHTML = `
-        <input type="checkbox" ${checked ? "checked":""} data-ph="${ph.id}" data-ch="${c.id}">
+      const row=document.createElement("div");
+      row.className="checkRow";
+      const checked=!!(p.qa?.[ph.id]?.[c.id]);
+      row.innerHTML=`
+        <input type="checkbox" ${checked?"checked":""} data-ph="${ph.id}" data-ch="${c.id}">
         <div class="txt">${escapeHtml(c.text)}</div>
       `;
-      const cb = row.querySelector("input[type='checkbox']");
-      cb.addEventListener("change", () => {
+      row.querySelector("input").addEventListener("change",(e)=>{
         p.qa[ph.id] ??= {};
-        p.qa[ph.id][c.id] = cb.checked;
-        touch(p); saveState();
+        p.qa[ph.id][c.id] = e.target.checked;
+        touchProject(p);
+        saveState(); // checkbox ok to re-render
       });
       checks.appendChild(row);
     }
     box.appendChild(checks);
 
-    // Notes + signoff
-    const bottom = document.createElement("div");
-    bottom.style.marginTop = "10px";
-    bottom.className = "twoCol";
+    const bottom=document.createElement("div");
+    bottom.className="twoCol";
+    bottom.style.marginTop="10px";
 
-    const notes = document.createElement("div");
-    notes.innerHTML = `
+    const notes=document.createElement("div");
+    notes.innerHTML=`
       <label>Notes (Phase)</label>
-      <textarea data-ph="${ph.id}" placeholder="Crew notes, issues, rework required, etc.">${escapeHtml(p.notes?.[ph.id] || "")}</textarea>
+      <textarea placeholder="Crew notes, issues, rework required, etc.">${escapeHtml(p.notes?.[ph.id]||"")}</textarea>
     `;
     const ta = notes.querySelector("textarea");
-    ta.addEventListener("input", () => {
+    ta.addEventListener("input", ()=>{
       p.notes[ph.id] = ta.value;
-      touch(p); saveStateNoRender();
+      touchProject(p);
+      saveStateNoRender(); // FIX: typing should NOT re-render
     });
 
-    const sign = document.createElement("div");
+    const sign=document.createElement("div");
     const s = p.signoff?.[ph.id] || {};
-    sign.innerHTML = `
+    sign.innerHTML=`
       <label>QA Signoff</label>
       <div class="twoCol">
         <div>
           <label style="margin-bottom:6px;">Approved By</label>
-          <select data-ph="${ph.id}" data-field="approverId" id="appr_${ph.id}"></select>
+          <select id="appr_${ph.id}"></select>
         </div>
         <div>
           <label style="margin-bottom:6px;">Date</label>
-          <input data-ph="${ph.id}" data-field="date" type="date" value="${escapeAttr(s.date||"")}" />
+          <input type="date" id="date_${ph.id}" value="${escapeAttr(s.date||"")}" />
         </div>
       </div>
       <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn ok" data-action="setToday" data-ph="${ph.id}">Set date = Today</button>
         <button class="btn bad" data-action="clearSign" data-ph="${ph.id}">Clear signoff</button>
       </div>
-      <div class="mutedNote" style="margin-top:10px;">Edit the dropdown list using “Edit QA Roster”.</div>
+      <div class="mutedNote" style="margin-top:10px;">Edit dropdown list using “Edit QA Roster”.</div>
     `;
 
-    // Fill dropdown
     const sel = sign.querySelector(`#appr_${CSS.escape(ph.id)}`);
-    const emptyOpt = document.createElement("option");
-    emptyOpt.value = "";
-    emptyOpt.textContent = "— Select approver —";
+    const emptyOpt=document.createElement("option");
+    emptyOpt.value=""; emptyOpt.textContent="— Select approver —";
     sel.appendChild(emptyOpt);
-
     for(const a of state.roster.approvers){
-      const opt = document.createElement("option");
-      opt.value = a.id;
-      opt.textContent = a.name;
-      if(a.id === s.approverId) opt.selected = true;
+      const opt=document.createElement("option");
+      opt.value=a.id; opt.textContent=a.name;
+      if(a.id===s.approverId) opt.selected=true;
       sel.appendChild(opt);
     }
-
-    sel.addEventListener("change", () => {
+    sel.addEventListener("change", ()=>{
       p.signoff[ph.id] ??= {};
       p.signoff[ph.id].approverId = sel.value || "";
-      touch(p); saveState();
+      touchProject(p);
+      saveState(); // dropdown ok to re-render
     });
 
-    sign.querySelectorAll("input").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const field = inp.getAttribute("data-field");
-        p.signoff[phid] ??= {};
-        p.signoff[phid][field] = inp.value;
-        touch(p); saveState();
-      });
+    const dateInput = sign.querySelector(`#date_${CSS.escape(ph.id)}`);
+    dateInput.addEventListener("input", ()=>{
+      p.signoff[ph.id] ??= {};
+      p.signoff[ph.id].date = dateInput.value;
+      touchProject(p);
+      saveStateNoRender(); // typing/selecting date shouldn't rebuild
     });
 
     bottom.appendChild(notes);
@@ -639,35 +655,35 @@ function renderDetail(){
     container.appendChild(box);
   }
 
-  // Button handlers inside detail
-  container.querySelectorAll("button[data-action]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const action = btn.getAttribute("data-action");
-      const phid = btn.getAttribute("data-ph");
-      const ph = state.library.phases.find(x => x.id === phid);
+  // action buttons
+  container.querySelectorAll("button[data-action]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const action=btn.getAttribute("data-action");
+      const phid=btn.getAttribute("data-ph");
+      const ph = state.library.phases.find(x=>x.id===phid);
       if(!ph) return;
 
       if(action==="markAll"){
         p.qa[phid] ??= {};
-        for(const c of ph.checks) p.qa[phid][c.id] = true;
-        touch(p); saveState();
+        for(const c of ph.checks) p.qa[phid][c.id]=true;
+        touchProject(p); saveState();
       }
       if(action==="clearAll"){
-        p.qa[phid] = {};
-        touch(p); saveState();
+        p.qa[phid]={};
+        touchProject(p); saveState();
       }
       if(action==="setToday"){
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth()+1).padStart(2,"0");
-        const dd = String(today.getDate()).padStart(2,"0");
+        const d=new Date();
+        const yyyy=d.getFullYear();
+        const mm=String(d.getMonth()+1).padStart(2,"0");
+        const dd=String(d.getDate()).padStart(2,"0");
         p.signoff[phid] ??= {};
         p.signoff[phid].date = `${yyyy}-${mm}-${dd}`;
-        touch(p); saveState();
+        touchProject(p); saveState();
       }
       if(action==="clearSign"){
         p.signoff[phid] = {};
-        touch(p); saveState();
+        touchProject(p); saveState();
       }
       if(action==="newDisc"){
         openNewDiscrepancy(p.id, phid);
@@ -675,23 +691,13 @@ function renderDetail(){
     });
   });
 
-  elDetailPane.innerHTML = "";
+  elDetailPane.innerHTML="";
   elDetailPane.appendChild(container);
 }
 
-function phaseProgress(p, ph){
-  const total = ph.checks.length;
-  let done = 0;
-  for(const c of ph.checks) if(p.qa?.[ph.id]?.[c.id]) done++;
-  const pct = total ? Math.round((done/total)*100) : 0;
-  return {done,total,pct};
-}
-
-function divHr(){ const d=document.createElement("div"); d.className="hr"; return d; }
-
 function openAddProject(){
-  const body = document.createElement("div");
-  body.innerHTML = `
+  const body=document.createElement("div");
+  body.innerHTML=`
     <div>
       <label>Project / Customer Name</label>
       <input id="newProjectName" placeholder="e.g., Smith Pool - Richmond Hill" />
@@ -700,7 +706,7 @@ function openAddProject(){
     <div>
       <label>Starting Phase</label>
       <select id="newProjectPhase"></select>
-      <div class="mutedNote" style="margin-top:8px;">You can change the phase later. QA checks are per-phase.</div>
+      <div class="mutedNote" style="margin-top:8px;">You can change the phase later.</div>
     </div>
     <div class="hr"></div>
     <div class="twoCol">
@@ -720,25 +726,24 @@ function openAddProject(){
     </div>
   `;
 
-  const sel = body.querySelector("#newProjectPhase");
+  const sel=body.querySelector("#newProjectPhase");
   for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
+    const opt=document.createElement("option");
+    opt.value=ph.id; opt.textContent=ph.name;
     sel.appendChild(opt);
   }
 
   body.querySelector("#btnCancel").addEventListener("click", closeModal);
-  body.querySelector("#btnCreate").addEventListener("click", () => {
-    const name = body.querySelector("#newProjectName").value.trim();
-    const phaseId = body.querySelector("#newProjectPhase").value;
-    const builderName = body.querySelector("#newBuilderName").value.trim();
-    const builderEmail = body.querySelector("#newBuilderEmail").value.trim();
+  body.querySelector("#btnCreate").addEventListener("click", ()=>{
+    const name=body.querySelector("#newProjectName").value.trim() || "Untitled Project";
+    const phaseId=sel.value;
+    const builderName=body.querySelector("#newBuilderName").value.trim();
+    const builderEmail=body.querySelector("#newBuilderEmail").value.trim();
 
-    const now = Date.now();
-    const proj = {
+    const now=Date.now();
+    const proj={
       id: uid(),
-      name: name || "Untitled Project",
+      name,
       createdAt: now,
       updatedAt: now,
       currentPhaseId: phaseId,
@@ -757,16 +762,13 @@ function openAddProject(){
 }
 
 function deleteSelectedProject(){
-  const p = state.projects.find(x => x.id === selectedProjectId);
+  const p = state.projects.find(x=>x.id===selectedProjectId);
   if(!p) return;
 
-  const body = document.createElement("div");
-  body.innerHTML = `
+  const body=document.createElement("div");
+  body.innerHTML=`
     <div class="danger" style="font-weight:800;">Delete this project?</div>
-    <div class="mutedNote" style="margin-top:8px;">
-      This will permanently remove <b>${escapeHtml(p.name)}</b> and its discrepancies from this browser storage.
-      Export a backup first if you might need it later.
-    </div>
+    <div class="mutedNote" style="margin-top:8px;">This deletes <b>${escapeHtml(p.name)}</b> and its discrepancies from this browser. Export first if needed.</div>
     <div class="hr"></div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button class="btn bad" id="confirmDel">Yes, delete</button>
@@ -774,9 +776,9 @@ function deleteSelectedProject(){
     </div>
   `;
   body.querySelector("#cancelDel").addEventListener("click", closeModal);
-  body.querySelector("#confirmDel").addEventListener("click", () => {
-    state.projects = state.projects.filter(x => x.id !== selectedProjectId);
-    state.discrepancies = state.discrepancies.filter(d => d.projectId !== selectedProjectId);
+  body.querySelector("#confirmDel").addEventListener("click", ()=>{
+    state.projects = state.projects.filter(x=>x.id!==selectedProjectId);
+    state.discrepancies = state.discrepancies.filter(d=>d.projectId!==selectedProjectId);
     selectedProjectId = state.projects[0]?.id || null;
     saveState();
     closeModal();
@@ -784,298 +786,290 @@ function deleteSelectedProject(){
   openModal("Confirm Delete", body);
 }
 
+/* ---------- Roster ---------- */
 function openRosterEditor(){
-  const body = document.createElement("div");
-  body.innerHTML = `
-    <div class="mutedNote">This controls the “Approved By” dropdown for QA signoffs.</div>
+  const body=document.createElement("div");
+  body.innerHTML=`
+    <div class="mutedNote">Controls the “Approved By” dropdown for signoffs.</div>
     <div class="hr"></div>
     <div id="rosterList" class="list"></div>
     <div class="hr"></div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button class="btn ok" id="addApprover">+ Add Approver</button>
-      <button class="btn ghost" id="doneRoster">Done</button>
+      <button class="btn ghost" id="done">Done</button>
     </div>
   `;
+  const rosterList=body.querySelector("#rosterList");
 
-  const rosterList = body.querySelector("#rosterList");
   function draw(){
-    rosterList.innerHTML = "";
+    rosterList.innerHTML="";
     if(!state.roster.approvers.length){
-      const m = document.createElement("div");
-      m.className = "mutedNote";
-      m.textContent = "No approvers yet. Click “+ Add Approver”.";
+      const m=document.createElement("div");
+      m.className="mutedNote";
+      m.textContent="No approvers yet.";
       rosterList.appendChild(m);
     }
     for(const a of state.roster.approvers){
-      const row = document.createElement("div");
-      row.className = "checkRow";
-      row.innerHTML = `
+      const row=document.createElement("div");
+      row.className="checkRow";
+      row.innerHTML=`
         <div style="flex:1">
           <label style="margin-bottom:6px;">Approver Name</label>
-          <input data-id="${a.id}" value="${escapeAttr(a.name)}" />
+          <input value="${escapeAttr(a.name)}" />
         </div>
-        <button class="btn bad" data-del="${a.id}">Delete</button>
+        <button class="btn bad">Delete</button>
       `;
-      row.querySelector("input").addEventListener("input", (e)=>{
+      row.querySelector("input").addEventListener("input",(e)=>{
         a.name = e.target.value;
         saveStateNoRender();
-        renderDetail();
-        renderProjects();
       });
       row.querySelector("button").addEventListener("click", ()=>{
-        // remove from roster, and clear any signoffs using this id
-        state.roster.approvers = state.roster.approvers.filter(x => x.id !== a.id);
+        state.roster.approvers = state.roster.approvers.filter(x=>x.id!==a.id);
+        // clear any signoffs that used this approver
         for(const p of state.projects){
-          for(const phid of Object.keys(p.signoff || {})){
-            if(p.signoff[phid]?.approverId === a.id){
-              p.signoff[phid].approverId = "";
+          for(const phid of Object.keys(p.signoff||{})){
+            if(p.signoff[phid]?.approverId===a.id){
+              p.signoff[phid].approverId="";
             }
           }
         }
         saveStateNoRender();
         draw();
-        renderAll();
       });
       rosterList.appendChild(row);
     }
-  }
-
-  function saveStateNoRender(){
-    state._lastSaved = Date.now();
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
   }
 
   body.querySelector("#addApprover").addEventListener("click", ()=>{
     state.roster.approvers.push({id: uid(), name:"New Approver"});
     saveStateNoRender();
     draw();
-    renderDetail();
   });
-  body.querySelector("#doneRoster").addEventListener("click", ()=>{ saveState(); closeModal(); });
+  body.querySelector("#done").addEventListener("click", ()=>{
+    saveState();
+    closeModal();
+  });
 
   draw();
   openModal("Edit QA Roster", body);
 }
 
+/* ---------- Library (with re-order) ---------- */
 function openLibraryEditor(){
-  const body = document.createElement("div");
-
-  const header = document.createElement("div");
-  header.className = "mutedNote";
-  header.textContent = "Edit phases and sub-inspections here. Changes apply to all projects. Existing project QA data is kept when possible.";
+  const body=document.createElement("div");
+  const header=document.createElement("div");
+  header.className="mutedNote";
+  header.textContent="Edit phases/checks. Use ↑ ↓ to reorder where they belong.";
   body.appendChild(header);
-
   body.appendChild(divHr());
 
-  const list = document.createElement("div");
-  list.className = "list";
+  const list=document.createElement("div");
+  list.className="list";
   body.appendChild(list);
 
   function draw(){
-    list.innerHTML = "";
+    list.innerHTML="";
 
-    const addPhase = document.createElement("button");
-    addPhase.className = "btn ok";
-    addPhase.textContent = "+ Add Phase";
-    addPhase.addEventListener("click", () => {
-      state.library.phases.push({ id: uid(), name: "New Phase", checks: [] });
+    const addPhase=document.createElement("button");
+    addPhase.className="btn ok";
+    addPhase.textContent="+ Add Phase";
+    addPhase.addEventListener("click", ()=>{
+      state.library.phases.push({id: uid(), name:"New Phase", checks:[]});
       saveStateNoRender();
       draw();
     });
     list.appendChild(addPhase);
 
-    for(const ph of state.library.phases){
-      const box = document.createElement("div");
-      box.className = "phaseBox";
+    state.library.phases.forEach((ph, phaseIndex)=>{
+      const box=document.createElement("div");
+      box.className="phaseBox";
 
-      const top = document.createElement("div");
-      top.className = "phaseTop";
-      top.innerHTML = `
+      const top=document.createElement("div");
+      top.className="phaseTop";
+      top.innerHTML=`
         <div style="flex:1; min-width:240px;">
           <label>Phase Name</label>
-          <input data-ph="${ph.id}" class="phName" value="${escapeAttr(ph.name)}" />
+          <input class="phName" value="${escapeAttr(ph.name)}" />
         </div>
         <div class="row">
-          <button class="btn ghost" data-action="addCheck" data-ph="${ph.id}">+ Add Check</button>
-          <button class="btn bad" data-action="delPhase" data-ph="${ph.id}">Delete Phase</button>
+          <button class="btn ghost" data-action="phaseUp">↑</button>
+          <button class="btn ghost" data-action="phaseDown">↓</button>
+          <button class="btn ghost" data-action="addCheck">+ Add Check</button>
+          <button class="btn bad" data-action="delPhase">Delete Phase</button>
         </div>
       `;
       box.appendChild(top);
 
-      const checks = document.createElement("div");
-      checks.className = "checks";
-      if(!ph.checks.length){
-        const m = document.createElement("div");
-        m.className = "mutedNote";
-        m.textContent = "No checks yet. Click “+ Add Check”.";
-        checks.appendChild(m);
-      } else {
-        for(const c of ph.checks){
-          const row = document.createElement("div");
-          row.className = "checkRow";
-          row.innerHTML = `
-            <div style="flex:1">
-              <input data-ph="${ph.id}" data-ch="${c.id}" class="chText" value="${escapeAttr(c.text)}" />
-            </div>
-            <button class="btn bad" data-action="delCheck" data-ph="${ph.id}" data-ch="${c.id}">Delete</button>
-          `;
-          checks.appendChild(row);
-        }
-      }
-      box.appendChild(checks);
-      list.appendChild(box);
-    }
-
-    list.querySelectorAll("input.phName").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const ph = state.library.phases.find(x => x.id === phid);
-        if(!ph) return;
-        ph.name = inp.value;
+      top.querySelector("input.phName").addEventListener("input",(e)=>{
+        ph.name = e.target.value;
         saveStateNoRender();
         renderProjects();
-        renderDetail();
+        elDetailTitle.textContent = (state.projects.find(x=>x.id===selectedProjectId)?.name)||"Select a project";
       });
-    });
 
-    list.querySelectorAll("input.chText").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const chid = inp.getAttribute("data-ch");
-        const ph = state.library.phases.find(x => x.id === phid);
-        const ch = ph?.checks.find(x => x.id === chid);
-        if(!ch) return;
-        ch.text = inp.value;
-        saveStateNoRender();
-        renderDetail();
+      const btns = top.querySelectorAll("button[data-action]");
+      btns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const action=b.getAttribute("data-action");
+
+          if(action==="phaseUp"){
+            moveItem(state.library.phases, phaseIndex, phaseIndex-1);
+            saveStateNoRender(); draw(); renderAll();
+          }
+          if(action==="phaseDown"){
+            moveItem(state.library.phases, phaseIndex, phaseIndex+1);
+            saveStateNoRender(); draw(); renderAll();
+          }
+          if(action==="addCheck"){
+            ph.checks.push({id: uid(), text:"New Check"});
+            saveStateNoRender(); draw(); renderDetail();
+          }
+          if(action==="delPhase"){
+            const ok=confirm("Delete this phase?");
+            if(!ok) return;
+            const phid = ph.id;
+            state.library.phases = state.library.phases.filter(x=>x.id!==phid);
+            for(const p of state.projects){
+              delete (p.qa||{})[phid];
+              delete (p.signoff||{})[phid];
+              delete (p.notes||{})[phid];
+              if(p.currentPhaseId===phid) p.currentPhaseId = state.library.phases[0]?.id || null;
+            }
+            for(const d of state.discrepancies){
+              if(d.phaseId===phid) d.phaseId="";
+            }
+            saveStateNoRender(); draw(); renderAll();
+          }
+        });
       });
+
+      const checks=document.createElement("div");
+      checks.className="checks";
+
+      if(!ph.checks.length){
+        const m=document.createElement("div");
+        m.className="mutedNote";
+        m.textContent="No checks yet.";
+        checks.appendChild(m);
+      } else {
+        ph.checks.forEach((c, checkIndex)=>{
+          const row=document.createElement("div");
+          row.className="checkRow";
+          row.innerHTML=`
+            <div style="flex:1">
+              <input class="chText" value="${escapeAttr(c.text)}" />
+            </div>
+            <button class="btn ghost" data-action="checkUp">↑</button>
+            <button class="btn ghost" data-action="checkDown">↓</button>
+            <button class="btn bad" data-action="delCheck">Delete</button>
+          `;
+          row.querySelector("input.chText").addEventListener("input",(e)=>{
+            c.text = e.target.value;
+            saveStateNoRender();
+          });
+
+          row.querySelectorAll("button[data-action]").forEach(b=>{
+            b.addEventListener("click", ()=>{
+              const action=b.getAttribute("data-action");
+
+              if(action==="checkUp"){
+                moveItem(ph.checks, checkIndex, checkIndex-1);
+                saveStateNoRender(); draw(); renderDetail();
+              }
+              if(action==="checkDown"){
+                moveItem(ph.checks, checkIndex, checkIndex+1);
+                saveStateNoRender(); draw(); renderDetail();
+              }
+              if(action==="delCheck"){
+                const ok=confirm("Delete this check?");
+                if(!ok) return;
+                const chid=c.id;
+                ph.checks = ph.checks.filter(x=>x.id!==chid);
+                for(const p of state.projects){
+                  if(p.qa?.[ph.id]) delete p.qa[ph.id][chid];
+                }
+                saveStateNoRender(); draw(); renderDetail();
+              }
+            });
+          });
+
+          checks.appendChild(row);
+        });
+      }
+
+      box.appendChild(checks);
+      list.appendChild(box);
     });
-
-    list.querySelectorAll("button[data-action]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const action = btn.getAttribute("data-action");
-        const phid = btn.getAttribute("data-ph");
-        const ph = state.library.phases.find(x => x.id === phid);
-        if(!ph) return;
-
-        if(action === "addCheck"){
-          ph.checks.push({ id: uid(), text: "New Check" });
-          saveStateNoRender();
-          draw();
-          renderDetail();
-        }
-
-        if(action === "delCheck"){
-          const chid = btn.getAttribute("data-ch");
-          ph.checks = ph.checks.filter(x => x.id !== chid);
-          for(const p of state.projects){
-            if(p.qa?.[phid]) delete p.qa[phid][chid];
-          }
-          saveStateNoRender();
-          draw();
-          renderDetail();
-        }
-
-        if(action === "delPhase"){
-          state.library.phases = state.library.phases.filter(x => x.id !== phid);
-          for(const p of state.projects){
-            if(p.qa) delete p.qa[phid];
-            if(p.signoff) delete p.signoff[phid];
-            if(p.notes) delete p.notes[phid];
-            if(p.currentPhaseId === phid) p.currentPhaseId = state.library.phases[0]?.id || null;
-          }
-          // also detach discrepancies tied to deleted phase
-          for(const d of state.discrepancies){
-            if(d.phaseId === phid) d.phaseId = "";
-          }
-          saveStateNoRender();
-          draw();
-          renderAll();
-        }
-      });
-    });
-  }
-
-  function saveStateNoRender(){
-    state._lastSaved = Date.now();
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
   }
 
   draw();
   body.appendChild(divHr());
-  const footer = document.createElement("div");
-  footer.className = "mutedNote";
-  footer.textContent = "After editing the library, export a backup so you always have a copy of your latest template + projects.";
+  const footer=document.createElement("div");
+  footer.className="mutedNote";
+  footer.textContent="After big edits, Export Backup so your template is safe.";
   body.appendChild(footer);
 
-  openModal("Edit Library (Phases + Checks)", body);
+  openModal("Edit Library (Reorder Phases + Checks)", body);
 }
 
-/* -------------------------
-   Discrepancies
---------------------------*/
-function openDiscrepancyCenter(){
-  const p = state.projects.find(x => x.id === selectedProjectId);
+/* ---------- Discrepancies ---------- */
+function statusTag(status){
+  const s=(status||"Open");
+  let cls="open";
+  if(s==="In Progress") cls="progress";
+  if(s==="Resolved") cls="resolved";
+  return `<span class="tag ${cls}">${escapeHtml(s)}</span>`;
+}
 
-  const body = document.createElement("div");
-  const header = document.createElement("div");
-  header.className = "mutedNote";
+function openDiscrepancyCenter(){
+  const p = state.projects.find(x=>x.id===selectedProjectId);
+  const body=document.createElement("div");
+
+  const header=document.createElement("div");
+  header.className="mutedNote";
   header.textContent = p ? `Discrepancies for: ${p.name}` : "Select a project first.";
   body.appendChild(header);
-
   body.appendChild(divHr());
 
-  const actions = document.createElement("div");
+  const actions=document.createElement("div");
   actions.style.display="flex"; actions.style.gap="10px"; actions.style.flexWrap="wrap";
-  actions.innerHTML = `
-    <button class="btn ok" id="btnNewDisc">+ New Discrepancy</button>
-    <button class="btn blue" id="btnBuilderReport">Generate Builder Report</button>
-    <button class="btn ghost" id="btnClose">Close</button>
+  actions.innerHTML=`
+    <button class="btn ok" id="newDisc">+ New Discrepancy</button>
+    <button class="btn blue" id="builderReport">Generate Builder Report</button>
+    <button class="btn ghost" id="close">Close</button>
   `;
   body.appendChild(actions);
 
-  const listWrap = document.createElement("div");
+  const listWrap=document.createElement("div");
   listWrap.style.marginTop="12px";
   body.appendChild(listWrap);
 
   function draw(){
-    listWrap.innerHTML = "";
-    if(!p){
-      listWrap.innerHTML = `<div class="mutedNote">No project selected.</div>`;
-      return;
-    }
+    listWrap.innerHTML="";
+    if(!p){ listWrap.innerHTML=`<div class="mutedNote">No project selected.</div>`; return; }
+
     const discs = state.discrepancies
-      .filter(d => d.projectId===p.id)
+      .filter(d=>d.projectId===p.id)
       .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
 
     if(!discs.length){
-      listWrap.innerHTML = `<div class="mutedNote">No discrepancies yet. Click “+ New Discrepancy”.</div>`;
+      listWrap.innerHTML=`<div class="mutedNote">No discrepancies yet.</div>`;
       return;
     }
 
-    const table = document.createElement("table");
-    table.className = "table";
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Phase</th>
-          <th>Severity</th>
-          <th>Status</th>
-          <th>Title</th>
-          <th>Assigned</th>
-          <th>Due</th>
-          <th></th>
-        </tr>
-      </thead>
+    const table=document.createElement("table");
+    table.className="table";
+    table.innerHTML=`
+      <thead><tr>
+        <th>When</th><th>Phase</th><th>Severity</th><th>Status</th><th>Title</th><th>Assigned</th><th>Due</th><th></th>
+      </tr></thead>
       <tbody></tbody>
     `;
-    const tbody = table.querySelector("tbody");
-
+    const tb=table.querySelector("tbody");
     for(const d of discs){
-      const tr = document.createElement("tr");
       const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
-      tr.innerHTML = `
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
         <td>${escapeHtml(new Date(d.createdAt).toLocaleDateString())}</td>
         <td>${escapeHtml(phName)}</td>
         <td>${escapeHtml(d.severity||"Medium")}</td>
@@ -1085,48 +1079,27 @@ function openDiscrepancyCenter(){
         <td>${escapeHtml(d.dueDate||"")}</td>
         <td><button class="btn ghost" data-edit="${d.id}">Edit</button></td>
       `;
-      tr.querySelector("button").addEventListener("click", ()=> openEditDiscrepancy(d.id, draw));
-      tbody.appendChild(tr);
+      tr.querySelector("button").addEventListener("click", ()=>openEditDiscrepancy(d.id, draw));
+      tb.appendChild(tr);
     }
-
     listWrap.appendChild(table);
   }
 
-  actions.querySelector("#btnClose").addEventListener("click", closeModal);
-  actions.querySelector("#btnNewDisc").addEventListener("click", ()=> {
-    if(!p) return;
-    openNewDiscrepancy(p.id, p.currentPhaseId || state.library.phases[0]?.id || "");
-    // redraw after closing handled in save
-  });
-  actions.querySelector("#btnBuilderReport").addEventListener("click", ()=> {
-    if(!p) return;
-    openBuilderReport(p.id);
-  });
+  actions.querySelector("#close").addEventListener("click", closeModal);
+  actions.querySelector("#newDisc").addEventListener("click", ()=>{ if(p) openNewDiscrepancy(p.id, p.currentPhaseId||""); });
+  actions.querySelector("#builderReport").addEventListener("click", ()=>{ if(p) openBuilderReport(p.id); });
 
   draw();
   openModal("Discrepancy Reports", body);
 }
 
-function statusTag(status){
-  const s = (status||"Open");
-  let cls = "open";
-  if(s==="In Progress") cls="progress";
-  if(s==="Resolved") cls="resolved";
-  return `<span class="tag ${cls}">${escapeHtml(s)}</span>`;
-}
-
 function openNewDiscrepancy(projectId, phaseId){
-  const p = state.projects.find(x=>x.id===projectId);
-  const body = document.createElement("div");
-  body.innerHTML = `
+  const body=document.createElement("div");
+  body.innerHTML=`
     <div class="twoCol">
-      <div>
-        <label>Phase</label>
-        <select id="discPhase"></select>
-      </div>
-      <div>
-        <label>Severity</label>
-        <select id="discSeverity">
+      <div><label>Phase</label><select id="phase"></select></div>
+      <div><label>Severity</label>
+        <select id="sev">
           <option>Low</option>
           <option selected>Medium</option>
           <option>High</option>
@@ -1136,87 +1109,69 @@ function openNewDiscrepancy(projectId, phaseId){
     </div>
 
     <div class="twoCol" style="margin-top:12px;">
-      <div>
-        <label>Status</label>
-        <select id="discStatus">
+      <div><label>Status</label>
+        <select id="status">
           <option selected>Open</option>
           <option>In Progress</option>
           <option>Resolved</option>
         </select>
       </div>
-      <div>
-        <label>Due Date</label>
-        <input type="date" id="discDue" />
-      </div>
+      <div><label>Due Date</label><input type="date" id="due"/></div>
     </div>
 
     <div class="twoCol" style="margin-top:12px;">
-      <div>
-        <label>Assigned To (builder/crew)</label>
-        <input id="discAssigned" placeholder="e.g., Mike / ABC Builder" />
-      </div>
-      <div>
-        <label>Reported By</label>
-        <input id="discReportedBy" placeholder="e.g., Warren" />
-      </div>
+      <div><label>Assigned To</label><input id="assigned" placeholder="e.g., Mike / ABC Builder"/></div>
+      <div><label>Reported By</label><input id="reported" placeholder="e.g., Warren"/></div>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Title</label>
-      <input id="discTitle" placeholder="Short: what’s wrong?" />
+      <label>Title</label><input id="title" placeholder="Short: what’s wrong?"/>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Description / Required Fix</label>
-      <textarea id="discDesc" placeholder="Describe discrepancy, exact correction needed, and any specs."></textarea>
+      <label>Description / Required Fix</label><textarea id="desc"></textarea>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Photo Links (optional)</label>
-      <textarea id="discPhotos" placeholder="Paste links (one per line). Example: Google Photos / iCloud / Dropbox share links."></textarea>
-      <div class="mutedNote" style="margin-top:6px;">Tip: upload photos anywhere and paste share links here.</div>
+      <label>Photo Links (one per line)</label><textarea id="photos"></textarea>
     </div>
 
     <div class="hr"></div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="saveDisc">Save Discrepancy</button>
-      <button class="btn ghost" id="cancelDisc">Cancel</button>
+      <button class="btn ok" id="save">Save</button>
+      <button class="btn ghost" id="cancel">Cancel</button>
     </div>
   `;
 
-  // fill phase select
-  const sel = body.querySelector("#discPhase");
+  const sel=body.querySelector("#phase");
   for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
-    if(ph.id === phaseId) opt.selected = true;
+    const opt=document.createElement("option");
+    opt.value=ph.id; opt.textContent=ph.name;
+    if(ph.id===phaseId) opt.selected=true;
     sel.appendChild(opt);
   }
 
-  body.querySelector("#cancelDisc").addEventListener("click", closeModal);
-  body.querySelector("#saveDisc").addEventListener("click", ()=> {
-    const now = Date.now();
-    const d = {
+  body.querySelector("#cancel").addEventListener("click", closeModal);
+  body.querySelector("#save").addEventListener("click", ()=>{
+    const now=Date.now();
+    state.discrepancies.unshift({
       id: uid(),
       projectId,
       phaseId: sel.value,
       createdAt: now,
       updatedAt: now,
-      title: body.querySelector("#discTitle").value.trim(),
-      description: body.querySelector("#discDesc").value.trim(),
-      severity: body.querySelector("#discSeverity").value,
-      status: body.querySelector("#discStatus").value,
-      assignedTo: body.querySelector("#discAssigned").value.trim(),
-      dueDate: body.querySelector("#discDue").value,
-      reportedBy: body.querySelector("#discReportedBy").value.trim(),
-      photoLinks: body.querySelector("#discPhotos").value.split("\n").map(s=>s.trim()).filter(Boolean),
-      builderEmailOverride: ""
-    };
-    state.discrepancies.unshift(d);
-    // touch project
-    const p = state.projects.find(x=>x.id===projectId);
-    if(p) touch(p);
+      title: body.querySelector("#title").value.trim(),
+      description: body.querySelector("#desc").value.trim(),
+      severity: body.querySelector("#sev").value,
+      status: body.querySelector("#status").value,
+      assignedTo: body.querySelector("#assigned").value.trim(),
+      dueDate: body.querySelector("#due").value,
+      reportedBy: body.querySelector("#reported").value.trim(),
+      photoLinks: body.querySelector("#photos").value.split("\n").map(s=>s.trim()).filter(Boolean)
+    });
+
+    const p=state.projects.find(x=>x.id===projectId);
+    if(p) touchProject(p);
     saveState();
     closeModal();
   });
@@ -1228,109 +1183,86 @@ function openEditDiscrepancy(discId, onDone){
   const d = state.discrepancies.find(x=>x.id===discId);
   if(!d) return;
 
-  const body = document.createElement("div");
-  body.innerHTML = `
+  const body=document.createElement("div");
+  body.innerHTML=`
     <div class="twoCol">
-      <div>
-        <label>Phase</label>
-        <select id="discPhase"></select>
-      </div>
-      <div>
-        <label>Severity</label>
-        <select id="discSeverity">
-          <option>Low</option>
-          <option>Medium</option>
-          <option>High</option>
-          <option>Critical</option>
+      <div><label>Phase</label><select id="phase"></select></div>
+      <div><label>Severity</label>
+        <select id="sev">
+          <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
         </select>
       </div>
     </div>
 
     <div class="twoCol" style="margin-top:12px;">
-      <div>
-        <label>Status</label>
-        <select id="discStatus">
-          <option>Open</option>
-          <option>In Progress</option>
-          <option>Resolved</option>
+      <div><label>Status</label>
+        <select id="status">
+          <option>Open</option><option>In Progress</option><option>Resolved</option>
         </select>
       </div>
-      <div>
-        <label>Due Date</label>
-        <input type="date" id="discDue" />
-      </div>
+      <div><label>Due Date</label><input type="date" id="due"/></div>
     </div>
 
     <div class="twoCol" style="margin-top:12px;">
-      <div>
-        <label>Assigned To</label>
-        <input id="discAssigned" />
-      </div>
-      <div>
-        <label>Reported By</label>
-        <input id="discReportedBy" />
-      </div>
+      <div><label>Assigned To</label><input id="assigned"/></div>
+      <div><label>Reported By</label><input id="reported"/></div>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Title</label>
-      <input id="discTitle" />
+      <label>Title</label><input id="title"/>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Description / Required Fix</label>
-      <textarea id="discDesc"></textarea>
+      <label>Description / Required Fix</label><textarea id="desc"></textarea>
     </div>
 
     <div style="margin-top:12px;">
-      <label>Photo Links</label>
-      <textarea id="discPhotos"></textarea>
+      <label>Photo Links (one per line)</label><textarea id="photos"></textarea>
     </div>
 
     <div class="hr"></div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="saveDisc">Save</button>
-      <button class="btn bad" id="delDisc">Delete</button>
-      <button class="btn ghost" id="cancelDisc">Close</button>
+      <button class="btn ok" id="save">Save</button>
+      <button class="btn bad" id="del">Delete</button>
+      <button class="btn ghost" id="close">Close</button>
     </div>
   `;
 
-  // fill
-  const sel = body.querySelector("#discPhase");
+  const sel=body.querySelector("#phase");
   for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
-    if(ph.id === d.phaseId) opt.selected = true;
+    const opt=document.createElement("option");
+    opt.value=ph.id; opt.textContent=ph.name;
+    if(ph.id===d.phaseId) opt.selected=true;
     sel.appendChild(opt);
   }
-  body.querySelector("#discSeverity").value = d.severity || "Medium";
-  body.querySelector("#discStatus").value = d.status || "Open";
-  body.querySelector("#discDue").value = d.dueDate || "";
-  body.querySelector("#discAssigned").value = d.assignedTo || "";
-  body.querySelector("#discReportedBy").value = d.reportedBy || "";
-  body.querySelector("#discTitle").value = d.title || "";
-  body.querySelector("#discDesc").value = d.description || "";
-  body.querySelector("#discPhotos").value = (d.photoLinks || []).join("\n");
 
-  body.querySelector("#cancelDisc").addEventListener("click", ()=>{ closeModal(); onDone?.(); });
-  body.querySelector("#saveDisc").addEventListener("click", ()=>{
+  body.querySelector("#sev").value = d.severity || "Medium";
+  body.querySelector("#status").value = d.status || "Open";
+  body.querySelector("#due").value = d.dueDate || "";
+  body.querySelector("#assigned").value = d.assignedTo || "";
+  body.querySelector("#reported").value = d.reportedBy || "";
+  body.querySelector("#title").value = d.title || "";
+  body.querySelector("#desc").value = d.description || "";
+  body.querySelector("#photos").value = (d.photoLinks||[]).join("\n");
+
+  body.querySelector("#close").addEventListener("click", ()=>{ closeModal(); onDone?.(); });
+  body.querySelector("#save").addEventListener("click", ()=>{
     d.phaseId = sel.value;
-    d.severity = body.querySelector("#discSeverity").value;
-    d.status = body.querySelector("#discStatus").value;
-    d.dueDate = body.querySelector("#discDue").value;
-    d.assignedTo = body.querySelector("#discAssigned").value.trim();
-    d.reportedBy = body.querySelector("#discReportedBy").value.trim();
-    d.title = body.querySelector("#discTitle").value.trim();
-    d.description = body.querySelector("#discDesc").value.trim();
-    d.photoLinks = body.querySelector("#discPhotos").value.split("\n").map(s=>s.trim()).filter(Boolean);
+    d.severity = body.querySelector("#sev").value;
+    d.status = body.querySelector("#status").value;
+    d.dueDate = body.querySelector("#due").value;
+    d.assignedTo = body.querySelector("#assigned").value.trim();
+    d.reportedBy = body.querySelector("#reported").value.trim();
+    d.title = body.querySelector("#title").value.trim();
+    d.description = body.querySelector("#desc").value.trim();
+    d.photoLinks = body.querySelector("#photos").value.split("\n").map(s=>s.trim()).filter(Boolean);
     d.updatedAt = Date.now();
     saveState();
     onDone?.();
     closeModal();
   });
-  body.querySelector("#delDisc").addEventListener("click", ()=>{
-    const ok = confirm("Delete this discrepancy?");
+  body.querySelector("#del").addEventListener("click", ()=>{
+    const ok=confirm("Delete this discrepancy?");
     if(!ok) return;
     state.discrepancies = state.discrepancies.filter(x=>x.id!==d.id);
     saveState();
@@ -1346,25 +1278,23 @@ function openBuilderReport(projectId){
   if(!p) return;
 
   const discs = state.discrepancies
-    .filter(d => d.projectId===projectId && (d.status||"Open") !== "Resolved")
+    .filter(d => d.projectId===projectId && (d.status||"Open")!=="Resolved")
     .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
 
-  const body = document.createElement("div");
-
-  const builderEmail = (p.builder?.email || "").trim();
-  const builderName = (p.builder?.name || "").trim();
-
   const subject = `Discrepancy Report – ${p.name}`;
-  const intro = `Builder Discrepancy Report\nProject: ${p.name}\nBuilder: ${builderName || "—"}\nDate: ${new Date().toLocaleDateString()}\n`;
+  const lines=[];
+  lines.push(`Builder Discrepancy Report`);
+  lines.push(`Project: ${p.name}`);
+  lines.push(`Builder: ${p.builder?.name || "—"}`);
+  lines.push(`Date: ${new Date().toLocaleDateString()}`);
+  lines.push("");
 
-  const lines = [];
-  lines.push(intro);
   if(!discs.length){
     lines.push("No OPEN discrepancies at this time.");
   } else {
     discs.forEach((d, idx)=>{
       const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
-      lines.push(`\n${idx+1}) ${d.title || "(No title)"}`);
+      lines.push(`${idx+1}) ${d.title || "(No title)"}`);
       lines.push(`   Phase: ${phName}`);
       lines.push(`   Severity: ${d.severity || "Medium"} | Status: ${d.status || "Open"}`);
       if(d.assignedTo) lines.push(`   Assigned: ${d.assignedTo}`);
@@ -1373,92 +1303,71 @@ function openBuilderReport(projectId){
       if(d.description) lines.push(`   Details: ${d.description}`);
       if((d.photoLinks||[]).length){
         lines.push(`   Photos:`);
-        d.photoLinks.forEach(link => lines.push(`     - ${link}`));
+        d.photoLinks.forEach(link=>lines.push(`     - ${link}`));
       }
+      lines.push("");
     });
   }
-  lines.push("\nRequested Action: Please confirm receipt and provide ETA for each correction.\n");
-
+  lines.push("Requested Action: Please confirm receipt and provide ETA for each correction.");
   const emailText = lines.join("\n");
 
-  // UI
-  const top = document.createElement("div");
-  top.className = "twoCol";
-  top.innerHTML = `
-    <div>
-      <label>To (Builder Email)</label>
-      <input id="toEmail" value="${escapeAttr(builderEmail)}" placeholder="name@company.com" />
-      <div class="mutedNote" style="margin-top:6px;">This is pulled from the project’s Builder Email.</div>
+  const body=document.createElement("div");
+  body.innerHTML=`
+    <div class="twoCol">
+      <div>
+        <label>To (Builder Email)</label>
+        <input id="to" value="${escapeAttr((p.builder?.email||"").trim())}" placeholder="name@company.com"/>
+      </div>
+      <div>
+        <label>Subject</label>
+        <input id="subj" value="${escapeAttr(subject)}"/>
+      </div>
     </div>
-    <div>
-      <label>Subject</label>
-      <input id="subj" value="${escapeAttr(subject)}" />
-    </div>
-  `;
-  body.appendChild(top);
 
-  const ta = document.createElement("div");
-  ta.style.marginTop = "12px";
-  ta.innerHTML = `
-    <label>Report Body (Copy/Paste)</label>
-    <textarea id="reportBody" class="mono" style="min-height:280px;"></textarea>
-    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn blue" id="copyBtn">Copy Report</button>
-      <button class="btn ok" id="printBtn">Print / Save as PDF</button>
-      <button class="btn ghost" id="closeBtn">Close</button>
-    </div>
-    <div class="mutedNote" style="margin-top:10px;">
-      If you want, you can paste this directly into an email to the builder.
+    <div style="margin-top:12px;">
+      <label>Report Body (Copy/Paste)</label>
+      <textarea id="txt" class="mono" style="min-height:280px;"></textarea>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn blue" id="copy">Copy Report</button>
+        <button class="btn ok" id="print">Print / Save as PDF</button>
+        <button class="btn ghost" id="close">Close</button>
+      </div>
     </div>
   `;
-  body.appendChild(ta);
+  const txt=body.querySelector("#txt");
+  txt.value=emailText;
 
-  const reportBody = ta.querySelector("#reportBody");
-  reportBody.value = emailText;
-
-  ta.querySelector("#closeBtn").addEventListener("click", closeModal);
-
-  ta.querySelector("#copyBtn").addEventListener("click", async ()=>{
-    try{
-      await navigator.clipboard.writeText(reportBody.value);
-      alert("Copied to clipboard.");
-    } catch(e){
-      // fallback select
-      reportBody.focus(); reportBody.select();
-      alert("Select + copy (Ctrl+C). Clipboard permission blocked.");
-    }
+  body.querySelector("#close").addEventListener("click", closeModal);
+  body.querySelector("#copy").addEventListener("click", async ()=>{
+    try{ await navigator.clipboard.writeText(txt.value); alert("Copied."); }
+    catch{ txt.focus(); txt.select(); alert("Press Ctrl+C to copy."); }
   });
 
-  ta.querySelector("#printBtn").addEventListener("click", ()=>{
-    const to = body.querySelector("#toEmail").value.trim();
-    const subj = body.querySelector("#subj").value.trim();
-    const content = reportBody.value;
+  // SAFE PRINT: no embedded </script> anywhere
+  body.querySelector("#print").addEventListener("click", ()=>{
+    const to=body.querySelector("#to").value.trim();
+    const subj=body.querySelector("#subj").value.trim();
+    const content=txt.value;
 
     const w = window.open("", "_blank");
-    w.document.write(`
-      <html><head><title>${escapeHtml(subj)}</title>
-      <style>
-        body{font-family: Arial, sans-serif; padding:24px;}
-        h1{font-size:18px; margin:0 0 6px;}
-        .meta{color:#444; font-size:12px; margin-bottom:16px;}
-        pre{white-space:pre-wrap; font-size:12px; line-height:1.35;}
-      </style>
-      </head><body>
-        <h1>${escapeHtml(subj)}</h1>
-        <div class="meta">To: ${escapeHtml(to || "—")}</div>
-        <pre>${escapeHtml(content)}</pre>
-        <script>window.print();<\/script>
-      </body></html>
-    `);
+    w.document.open();
+    w.document.write(
+      "<!doctype html><html><head><title>"+escapeHtml(subj)+"</title>"+
+      "<style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:18px;margin:0 0 6px}.meta{color:#444;font-size:12px;margin-bottom:16px}pre{white-space:pre-wrap;font-size:12px;line-height:1.35}</style>"+
+      "</head><body>"+
+      "<h1>"+escapeHtml(subj)+"</h1>"+
+      "<div class='meta'>To: "+escapeHtml(to||"—")+"</div>"+
+      "<pre>"+escapeHtml(content)+"</pre>"+
+      "</body></html>"
+    );
     w.document.close();
+    w.onload = ()=> { w.focus(); w.print(); };
   });
 
   openModal("Builder Discrepancy Report", body);
 }
 
-/* -------------------------
-   Export/Import/Reset
---------------------------*/
+/* ---------- Export/Import/Reset ---------- */
 function exportBackup(){
   const data = JSON.stringify(state, null, 2);
   const blob = new Blob([data], {type:"application/json"});
@@ -1474,34 +1383,32 @@ function exportBackup(){
 }
 
 function importBackup(e){
-  const file = e.target.files?.[0];
+  const file=e.target.files?.[0];
   if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
+  const reader=new FileReader();
+  reader.onload=()=>{
     try{
-      const parsed = JSON.parse(String(reader.result || ""));
-      if(!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+      const parsed=JSON.parse(String(reader.result||""));
       if(!parsed.library || !Array.isArray(parsed.library.phases)) throw new Error("Missing library");
       parsed.roster ??= defaultRoster();
       parsed.roster.approvers ??= [];
-      if(!Array.isArray(parsed.projects)) parsed.projects = [];
-      if(!Array.isArray(parsed.discrepancies)) parsed.discrepancies = [];
+      parsed.projects ??= [];
+      parsed.discrepancies ??= [];
       state = parsed;
       selectedProjectId = state.projects[0]?.id || null;
       saveState();
       closeModal();
     } catch(err){
-      alert("Import failed: " + (err.message || err));
+      alert("Import failed: " + (err.message||err));
     } finally {
-      e.target.value = "";
+      e.target.value="";
     }
   };
   reader.readAsText(file);
 }
 
 function resetAll(){
-  const ok = confirm("This will wipe all local data for this tracker in this browser. Export a backup first. Continue?");
+  const ok=confirm("This wipes all local data in this browser. Export first. Continue?");
   if(!ok) return;
   localStorage.removeItem(LS_KEY);
   state = { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
@@ -1509,30 +1416,8 @@ function resetAll(){
   renderAll();
 }
 
-/* -------------------------
-   Helpers
---------------------------*/
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-  function moveItem(arr, from, to){
-  if(to < 0 || to >= arr.length) return;
-  const item = arr.splice(from, 1)[0];
-  arr.splice(to, 0, item);
-}
-
-function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
-
-/* -------------------------
-   Init
---------------------------*/
-if(!selectedProjectId && state.projects[0]) selectedProjectId = state.projects[0].id;
 renderAll();
 </script>
 </body>
 </html>
+

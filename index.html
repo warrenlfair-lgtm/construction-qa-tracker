@@ -3,1423 +3,1530 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Construction QA Tracker (Internal)</title>
+  <title>Pool Sales Milestone Tracker (Single-File)</title>
   <style>
     :root{
       --bg:#0b0c10; --card:#12131a; --muted:#a7adbb; --text:#f3f5ff;
-      --line:#23263a; --ok:#1f8f4a; --warn:#d4a11e; --bad:#d14343; --blue:#2f76ff;
-      --chip:#1b1e2a;
-      --shadow: 0 12px 32px rgba(0,0,0,.35);
-      --radius:16px;
+      --line:#23263a; --ok:#1f8f4a; --bad:#d34b4b; --chip:#1a1c28;
+      --btn:#2a2d42; --btn2:#1d2033; --accent:#7aa2ff;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(1200px 800px at 30% -10%, #1b1f3a, transparent 60%),
-                  radial-gradient(900px 700px at 90% 10%, #152b2a, transparent 55%),
-                  var(--bg);
-      color:var(--text);
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--text);}
+    header{padding:16px 16px 0 16px; max-width:1200px; margin:0 auto;}
+    h1{margin:0 0 6px 0; font-size:20px}
+    .sub{color:var(--muted); font-size:13px; margin-bottom:14px}
+    .wrap{max-width:1200px; margin:0 auto; padding:0 16px 18px 16px;}
+    .grid{display:grid; gap:12px; grid-template-columns: 360px 1fr;}
+    @media (max-width: 960px){ .grid{grid-template-columns:1fr;} }
+    .card{background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden;}
+    .card .hd{padding:14px 14px 10px 14px; border-bottom:1px solid var(--line)}
+    .card .bd{padding:14px}
+    .row{display:flex; gap:8px; align-items:center;}
+    .row.wrap{flex-wrap:wrap}
+    .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px}
+    .stat{border:1px solid var(--line); border-radius:12px; padding:8px}
+    .stat .k{color:var(--muted); font-size:12px}
+    .stat .v{font-size:18px; font-weight:700; margin-top:2px}
+    input, textarea, select{
+      width:100%; padding:10px 10px; border-radius:12px; border:1px solid var(--line);
+      background:#0e1018; color:var(--text); outline:none;
     }
-    header{
-      padding:18px 16px;
-      border-bottom:1px solid var(--line);
-      position:sticky; top:0; background:rgba(11,12,16,.85); backdrop-filter: blur(10px);
-      z-index:10;
-    }
-    .wrap{max-width:1200px; margin:0 auto;}
-    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
-    h1{font-size:18px; margin:0; letter-spacing:.2px}
-    .sub{color:var(--muted); font-size:12px; margin-top:4px}
+    textarea{min-height:120px; resize:vertical}
     .btn{
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, #1a1d2a, #12131a);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      box-shadow:0 8px 18px rgba(0,0,0,.25);
-      font-weight:600;
-      font-size:13px;
-      user-select:none;
+      border:1px solid var(--line); background:var(--btn); color:var(--text);
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600;
     }
-    .btn:hover{transform: translateY(-1px);}
-    .btn:active{transform: translateY(0px);}
-    .btn.blue{border-color:rgba(47,118,255,.55); box-shadow:0 10px 22px rgba(47,118,255,.12)}
-    .btn.ok{border-color:rgba(31,143,74,.55)}
-    .btn.bad{border-color:rgba(209,67,67,.55)}
-    .btn.warn{border-color:rgba(212,161,30,.55)}
-    .btn.ghost{background:transparent; box-shadow:none}
-    .row{display:flex; gap:14px; flex-wrap:wrap; align-items:center}
-    .pill{
-      background:var(--chip);
-      border:1px solid var(--line);
-      padding:6px 10px;
-      border-radius:999px;
-      color:var(--muted);
-      font-size:12px;
-    }
-    main{padding:18px 16px 40px}
-    .grid{display:grid; grid-template-columns: 340px 1fr; gap:16px;}
-    @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
-    .card{
-      background:rgba(18,19,26,.9);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .card h2{
-      font-size:14px; margin:0;
-      padding:14px 14px 10px;
-      border-bottom:1px solid var(--line);
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px; flex-wrap:wrap;
-    }
-    .card .content{padding:14px}
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    input, select, textarea{
-      width:100%;
-      background:#0f1119;
-      border:1px solid var(--line);
-      color:var(--text);
-      padding:10px 10px;
-      border-radius:12px;
-      outline:none;
-      font-size:13px;
-    }
-    textarea{min-height:84px; resize:vertical}
-    .list{display:flex; flex-direction:column; gap:10px;}
+    .btn:hover{filter:brightness(1.07)}
+    .btn.secondary{background:var(--btn2); color:var(--text)}
+    .btn.danger{background:#3a1a1a; border-color:#542626; color:#ffb7b7}
+    .btn.accent{background:#22305a; border-color:#2c3a62}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--line); font-size:12px; color:var(--muted)}
+    .pill.bad{color:#ffb7b7; border-color:#542626; background:#2a1414}
+    .pill.ok{color:#b7ffd1; border-color:#275a3a; background:#112015}
+    .list{display:flex; flex-direction:column; gap:8px; max-height:62vh; overflow:auto; padding-right:6px}
     .item{
-      border:1px solid var(--line);
-      background:rgba(15,17,25,.75);
-      border-radius:14px;
-      padding:12px;
+      border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:10px;
       cursor:pointer;
-      transition:.12s ease;
     }
-    .item:hover{border-color:#2f3554}
-    .item.active{border-color:rgba(47,118,255,.7); box-shadow:0 0 0 2px rgba(47,118,255,.12) inset}
-    .item .title{font-weight:700; font-size:13px}
-    .item .meta{color:var(--muted); font-size:12px; margin-top:6px; display:flex; gap:8px; flex-wrap:wrap}
-    .chip{
-      display:inline-flex; align-items:center; gap:6px;
-      background:var(--chip);
-      border:1px solid var(--line);
-      padding:5px 8px;
-      border-radius:999px;
-      font-size:11px;
-      color:var(--muted);
+    .item.sel{border-color:#3b4673; background:#10152a}
+    .item .top{display:flex; justify-content:space-between; gap:10px}
+    .item .name{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .item .meta{color:var(--muted); font-size:12px; margin-top:2px}
+    .bar{height:8px; background:#0b0c12; border:1px solid var(--line); border-radius:999px; overflow:hidden; margin-top:8px}
+    .bar > div{height:100%; background:var(--accent); width:0%}
+    .tabs{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap}
+    .tab{padding:8px 10px; border-radius:12px; border:1px solid var(--line); background:#0e1018; cursor:pointer; font-weight:700; font-size:13px}
+    .tab.active{background:#10152a; border-color:#3b4673}
+    .mrow{
+      border:1px solid var(--line); border-radius:16px; padding:10px; background:#0f1018;
+      display:flex; flex-direction:column; gap:10px;
     }
-    .chip b{color:var(--text); font-size:11px}
-    .hr{height:1px; background:var(--line); margin:12px 0}
+    /* Status colors */
+    .mrow.pending { border-color: #6b2b2b; background: #1f1010; }
+    .mrow.overdue { border-color: #b23b3b; background: #2a1212; }
+    .mrow.complete { border-color: #2e7d4f; background: #0f2217; }
 
-    .phaseBox{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px;
-      background:rgba(15,17,25,.55);
-      margin-bottom:12px;
+    .mhead{display:flex; gap:10px; align-items:flex-start}
+    .chk{width:20px; height:20px; border-radius:6px; border:1px solid var(--line); display:grid; place-items:center; cursor:pointer; flex:0 0 auto; margin-top:2px}
+    .chk.on{background:#112015; border-color:#275a3a}
+    .title{font-weight:700}
+    .small{color:var(--muted); font-size:12px}
+    .mlast{display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap}
+    .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    @media (max-width: 720px){ .two{grid-template-columns:1fr} }
+    dialog{
+      border:1px solid var(--line); border-radius:16px; background:var(--card); color:var(--text);
+      width:min(920px, 96vw);
     }
-    .phaseTop{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
-    .phaseName{font-weight:800}
-    .small{font-size:12px; color:var(--muted)}
-    .checks{margin-top:10px; display:flex; flex-direction:column; gap:8px}
-    .checkRow{
-      display:flex; align-items:center; gap:10px;
-      border:1px dashed rgba(35,38,58,.75);
-      border-radius:12px; padding:8px 10px;
-      background:rgba(15,17,25,.35);
+    dialog::backdrop{background:rgba(0,0,0,.6)}
+    .dlg-hd{padding:14px; border-bottom:1px solid var(--line)}
+    .dlg-bd{padding:14px}
+    .dlg-ft{padding:14px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px}
+    .hint{color:var(--muted); font-size:12px}
+    .muted{color:var(--muted)}
+    .hr{height:1px; background:var(--line); margin:10px 0}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+
+    /* QA UI */
+    .phaseCard{border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:10px; margin-bottom:10px}
+    .phaseTop{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:flex-start}
+    .phaseName{font-weight:900}
+    .qaCheck{display:flex; gap:10px; align-items:flex-start; border:1px dashed rgba(35,38,58,.9); border-radius:12px; padding:8px 10px; background:#0e1018}
+    .qaCheck input[type="checkbox"]{width:auto; margin-top:2px; transform:scale(1.12)}
+    .qaCheck .txt{flex:1}
+    .dragRow{display:flex; gap:10px; align-items:center}
+    .grab{
+      width:34px; text-align:center; user-select:none;
+      cursor:grab; border:1px solid var(--line); background:#0e1018;
+      border-radius:10px; padding:8px 0; color:var(--muted); font-weight:800;
     }
-    .checkRow input[type="checkbox"]{width:auto; transform:scale(1.15)}
-    .checkRow .txt{flex:1; font-size:13px}
-    .twoCol{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
-    @media (max-width:680px){.twoCol{grid-template-columns:1fr}}
-    .rightActions{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
-    .mutedNote{color:var(--muted); font-size:12px; line-height:1.35}
-    .danger{color:#ff9a9a}
-    .tag{display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:rgba(15,17,25,.55); font-size:11px; color:var(--muted)}
-    .tag.open{border-color:rgba(209,67,67,.6)}
-    .tag.progress{border-color:rgba(212,161,30,.6)}
-    .tag.resolved{border-color:rgba(31,143,74,.6)}
-    .table{width:100%; border-collapse:collapse; font-size:12px}
-    .table th,.table td{border-bottom:1px solid var(--line); padding:8px 6px; vertical-align:top}
-    .table th{color:var(--muted); font-weight:700; text-align:left}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .grab:active{cursor:grabbing}
+    .dropHint{outline:2px dashed #3b4673; outline-offset:6px}
   </style>
 </head>
 <body>
 <header>
-  <div class="wrap topbar">
-    <div>
-      <h1>Construction QA Tracker (Internal)</h1>
-      <div class="sub">Editable milestones + signoff roster • Discrepancy reports • Export/Import JSON backup</div>
-    </div>
-    <div class="row">
-      <span class="pill" id="statPill">0 projects</span>
-      <button class="btn blue" id="btnExport">Export Backup</button>
-      <label class="btn ghost" style="display:inline-flex; align-items:center; gap:10px; cursor:pointer;">
-        Import Backup
-        <input type="file" id="fileImport" accept="application/json" style="display:none;">
-      </label>
-      <button class="btn bad" id="btnReset">Reset (wipe local)</button>
-    </div>
-  </div>
+  <h1>Pool Sales Milestone Tracker</h1>
+  <div class="sub">Add pool-sale customers, set a construction start date, and track pre-start milestones + QA phases (saved locally in your browser).</div>
 </header>
 
-<main>
-  <div class="wrap grid">
+<div class="wrap">
+  <div class="grid">
+    <!-- LEFT -->
     <section class="card">
-      <h2>
-        <span>Projects</span>
-        <button class="btn ok" id="btnAddProject">+ Add</button>
-      </h2>
-      <div class="content">
-        <div class="twoCol">
+      <div class="hd">
+        <div class="row" style="justify-content:space-between">
           <div>
-            <label>Search</label>
-            <input id="projectSearch" placeholder="Type a customer / job name..." />
+            <div style="font-weight:800">Customers</div>
+            <div class="hint">Search, add, export/import</div>
           </div>
-          <div>
-            <label>Sort</label>
-            <select id="projectSort">
-              <option value="updated_desc">Most recently updated</option>
-              <option value="name_asc">Name A → Z</option>
-              <option value="name_desc">Name Z → A</option>
-              <option value="created_desc">Newest created</option>
-              <option value="created_asc">Oldest created</option>
-            </select>
-          </div>
+          <button class="btn accent" id="addCustomerBtn">+ Add</button>
         </div>
-        <div class="hr"></div>
-        <div class="list" id="projectList"></div>
-        <div class="hr"></div>
-        <div class="mutedNote">
-          Tip: Export weekly. Import restores everything (projects + library + discrepancies + roster).
+
+        <div class="stats">
+          <div class="stat"><div class="k">Customers</div><div class="v" id="statCustomers">0</div></div>
+          <div class="stat"><div class="k">Start dates</div><div class="v" id="statStartDates">0</div></div>
+          <div class="stat"><div class="k">Overdue</div><div class="v" id="statOverdue">0</div></div>
         </div>
+
+        <div class="row" style="margin-top:10px">
+          <input id="search" placeholder="Search customer..." />
+        </div>
+
+        <div class="row wrap" style="margin-top:10px">
+          <button class="btn secondary" id="editTemplateBtn">Milestone template</button>
+          <button class="btn secondary" id="editQATemplateBtn">QA template</button>
+          <button class="btn secondary" id="exportBtn">Export</button>
+          <button class="btn secondary" id="importBtn">Import</button>
+          <button class="btn secondary" id="resetBtn" title="Clears local data">Reset</button>
+        </div>
+      </div>
+
+      <div class="bd">
+        <div class="list" id="customerList"></div>
       </div>
     </section>
 
+    <!-- RIGHT -->
     <section class="card">
-      <h2>
-        <span id="detailTitle">Select a project</span>
-        <div class="rightActions">
-          <button class="btn warn" id="btnDiscrepancies">Discrepancy Reports</button>
-          <button class="btn" id="btnEditLibrary">Edit Library</button>
-          <button class="btn" id="btnEditRoster">Edit QA Roster</button>
-          <button class="btn bad" id="btnDeleteProject">Delete Project</button>
+      <div class="hd" id="rightHeader">
+        <div class="row" style="justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <div>
+            <div style="font-weight:900; font-size:18px" id="custTitle">Select a customer</div>
+            <div class="hint" id="custSubtitle">Pick a customer on the left, or add a new one.</div>
+          </div>
+          <div class="row wrap" id="custActions" style="display:none">
+            <button class="btn secondary" id="recomputeBtn" title="Recalculate due dates based on template days-before-start">Recompute due dates</button>
+            <button class="btn danger" id="deleteCustomerBtn">Delete</button>
+            <button class="btn secondary" id="redReportBtn">Red tasks</button>
+          </div>
         </div>
-      </h2>
-      <div class="content" id="detailPane">
-        <div class="mutedNote">Add a project on the left to start tracking QA per phase.</div>
+
+        <div class="tabs" id="tabs" style="display:none">
+          <div class="tab active" data-tab="checklist">Checklist</div>
+          <div class="tab" data-tab="details">Customer details</div>
+          <div class="tab" data-tab="qa">QA Phases</div>
+        </div>
+      </div>
+
+      <div class="bd">
+        <div id="panelChecklist" style="display:none">
+          <div class="row wrap" style="justify-content:space-between; margin-bottom:10px">
+            <div class="row wrap" style="gap:10px">
+              <span class="pill" id="progressPill">0/0 (0%)</span>
+              <span class="pill ok" id="overduePill">No overdue</span>
+            </div>
+            <button class="btn secondary" id="addMilestoneBtn">+ Add milestone</button>
+          </div>
+          <div class="list" id="milestoneList" style="max-height:62vh"></div>
+        </div>
+
+        <div id="panelDetails" style="display:none">
+          <div class="two">
+            <div class="card" style="border-radius:16px">
+              <div class="hd"><div style="font-weight:800">Contact</div><div class="hint">Edit customer info</div></div>
+              <div class="bd" style="display:flex; flex-direction:column; gap:10px">
+                <label class="hint">Name</label><input id="dName" />
+                <label class="hint">Phone</label><input id="dPhone" />
+                <label class="hint">Email</label><input id="dEmail" />
+                <label class="hint">Address</label><input id="dAddress" />
+              </div>
+            </div>
+
+            <div class="card" style="border-radius:16px">
+              <div class="hd"><div style="font-weight:800">Construction start</div><div class="hint">Set the start date for due date calculations</div></div>
+              <div class="bd" style="display:flex; flex-direction:column; gap:10px">
+                <label class="hint">Start date</label><input id="dStartDate" type="date" />
+                <div class="hint">After setting a start date, click <b>Recompute due dates</b> to auto-fill due dates from the template.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panelQA" style="display:none">
+          <div class="row wrap" style="justify-content:space-between; margin-bottom:10px">
+            <div class="row wrap" style="gap:10px">
+              <span class="pill" id="qaProgressPill">QA: 0/0 (0%)</span>
+              <span class="pill" id="qaSignoffPill">Signed off: 0/0</span>
+            </div>
+            <button class="btn secondary" id="qaCopyOpenIssuesBtn">Copy open issues</button>
+          </div>
+
+          <div id="qaBody"></div>
+        </div>
+
+        <div id="panelEmpty" class="muted">
+          Add a customer to start tracking pre-construction milestones.
+        </div>
       </div>
     </section>
-  </div>
-</main>
-
-<div id="modal" style="position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:50; padding:18px;">
-  <div class="card" style="width:min(980px, 100%); max-height:86vh; overflow:auto;">
-    <h2>
-      <span id="modalTitle">Modal</span>
-      <button class="btn ghost" id="btnCloseModal">Close</button>
-    </h2>
-    <div class="content" id="modalBody"></div>
   </div>
 </div>
 
-<script>
-const LS_KEY = "construction_qa_tracker_stable_v1";
-const uid = () => Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
+<!-- ADD CUSTOMER DIALOG -->
+<dialog id="dlgCustomer">
+  <div class="dlg-hd">
+    <div style="font-weight:900">Add customer</div>
+    <div class="hint">Creates a new checklist from your milestone template + a QA phase checklist from the QA template.</div>
+  </div>
+  <div class="dlg-bd">
+    <div class="two">
+      <div style="grid-column:1 / -1">
+        <label class="hint">Name *</label>
+        <input id="cName" placeholder="Customer name" />
+      </div>
+      <div>
+        <label class="hint">Phone</label>
+        <input id="cPhone" placeholder="(xxx) xxx-xxxx" />
+      </div>
+      <div>
+        <label class="hint">Email</label>
+        <input id="cEmail" placeholder="name@email.com" />
+      </div>
+      <div style="grid-column:1 / -1">
+        <label class="hint">Address</label>
+        <input id="cAddress" placeholder="Jobsite address" />
+      </div>
+      <div>
+        <label class="hint">Construction start date</label>
+        <input id="cStartDate" type="date" />
+      </div>
+    </div>
+  </div>
+  <div class="dlg-ft">
+    <button class="btn secondary" id="cCancel">Cancel</button>
+    <button class="btn" id="cCreate">Create</button>
+  </div>
+</dialog>
 
-function defaultLibrary(){
-  return {
+<!-- TEMPLATE DIALOG -->
+<dialog id="dlgTemplate">
+  <div class="dlg-hd">
+    <div style="font-weight:900">Milestone template</div>
+    <div class="hint">Defaults applied to new customers. “Days before start” is used to calculate due dates.</div>
+  </div>
+  <div class="dlg-bd">
+    <div class="row wrap" style="justify-content:space-between">
+      <button class="btn" id="tAdd">+ Add template item</button>
+      <div class="hint">Existing customers are not auto-updated.</div>
+    </div>
+    <div class="hr"></div>
+    <div id="templateList" style="display:flex; flex-direction:column; gap:10px; max-height:52vh; overflow:auto; padding-right:6px"></div>
+  </div>
+  <div class="dlg-ft">
+    <button class="btn secondary" id="tCancel">Cancel</button>
+    <button class="btn" id="tSave">Save template</button>
+  </div>
+</dialog>
+
+<!-- QA TEMPLATE DIALOG -->
+<dialog id="dlgQATemplate">
+  <div class="dlg-hd">
+    <div style="font-weight:900">QA template (Phases + checks + approver dropdown)</div>
+    <div class="hint">Defaults applied to NEW customers only. Drag the handle (≡) to reorder phases/checks.</div>
+  </div>
+  <div class="dlg-bd">
+    <div class="two" style="align-items:start">
+      <div>
+        <div class="row wrap" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Phases</div>
+            <div class="hint">Drag to reorder. Add checks inside each phase.</div>
+          </div>
+          <button class="btn" id="qaAddPhaseBtn">+ Add phase</button>
+        </div>
+        <div class="hr"></div>
+        <div id="qaPhaseEditor"></div>
+      </div>
+
+      <div>
+        <div class="row wrap" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Approver dropdown list</div>
+            <div class="hint">This controls “Approved by” options.</div>
+          </div>
+          <button class="btn" id="qaAddApproverBtn">+ Add name</button>
+        </div>
+        <div class="hr"></div>
+        <div id="qaApproverEditor" style="display:flex; flex-direction:column; gap:10px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-ft">
+    <button class="btn secondary" id="qaTCancel">Cancel</button>
+    <button class="btn" id="qaTSave">Save QA template</button>
+  </div>
+</dialog>
+
+<!-- IMPORT DIALOG -->
+<dialog id="dlgImport">
+  <div class="dlg-hd">
+    <div style="font-weight:900">Import backup JSON</div>
+    <div class="hint">Paste the JSON you exported earlier.</div>
+  </div>
+  <div class="dlg-bd">
+    <textarea id="importText" class="mono" placeholder='{"template":[...],"qaTemplate":{...},"customers":[...]}'></textarea>
+  </div>
+  <div class="dlg-ft">
+    <button class="btn secondary" id="iCancel">Cancel</button>
+    <button class="btn" id="iDo">Import</button>
+  </div>
+</dialog>
+
+<!-- RED TASKS REPORT DIALOG -->
+<dialog id="dlgRedReport">
+  <div class="dlg-hd">
+    <div style="font-weight:900">Red Tasks Report</div>
+    <div class="hint">Incomplete milestones that need attention.</div>
+  </div>
+
+  <div class="dlg-bd">
+    <div class="row wrap" style="justify-content:space-between; gap:10px">
+      <label class="pill" style="cursor:pointer">
+        <input type="checkbox" id="overdueOnly" style="width:auto; margin:0 8px 0 0" />
+        Overdue only
+      </label>
+
+      <button class="btn secondary" id="copyRedReportBtn">Copy report</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <div id="redReportBody" style="display:flex; flex-direction:column; gap:10px"></div>
+  </div>
+
+  <div class="dlg-ft">
+    <button class="btn secondary" id="closeRedReportBtn">Close</button>
+  </div>
+</dialog>
+
+<script>
+  // ----------------- Data Model -----------------
+  const LS_KEY = "pool_sales_milestone_tracker_singlefile_v2"; // bumped version
+
+  const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+
+  const isoToday = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const addDays = (dateISO, days) => {
+    const d = new Date(dateISO + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const DEFAULT_TEMPLATE = [
+    { id: uid("t"), title: "Financing clear-to-start received", notes: "", defaultDaysBeforeStart: 30 },
+    { id: uid("t"), title: "Signed contract + scope of work finalized", notes: "", defaultDaysBeforeStart: 30 },
+    { id: uid("t"), title: "Initial deposit collected", notes: "", defaultDaysBeforeStart: 30 },
+    { id: uid("t"), title: "Site plan / setbacks verified", notes: "", defaultDaysBeforeStart: 21 },
+    { id: uid("t"), title: "Utility locate requested", notes: "", defaultDaysBeforeStart: 14 },
+    { id: uid("t"), title: "Permits submitted/approved (as applicable)", notes: "", defaultDaysBeforeStart: 21 },
+    { id: uid("t"), title: "Pre-build meeting completed", notes: "", defaultDaysBeforeStart: 10 },
+    { id: uid("t"), title: "Access/route confirmed (delivery & excavation)", notes: "", defaultDaysBeforeStart: 7 },
+    { id: uid("t"), title: "Materials / options selections finalized", notes: "", defaultDaysBeforeStart: 14 },
+  ];
+
+  const DEFAULT_QA_TEMPLATE = {
+    approvers: [
+      { id: uid("a"), name: "Warren" },
+      { id: uid("a"), name: "Superintendent" },
+      { id: uid("a"), name: "Builder Rep" },
+    ],
     phases: [
-      { id: uid(), name: "Pre Construction", checks: [
-        {id: uid(), text: "Contract signed & scope verified"},
-        {id: uid(), text: "Engineering/plans approved (if required)"},
-        {id: uid(), text: "Equipment list verified (models/options)"},
-        {id: uid(), text: "Utility locate complete"},
-        {id: uid(), text: "Pre-build meeting complete / notes saved"},
+      { id: uid("p"), name: "Pre Construction", checks: [
+        { id: uid("q"), text: "Scope verified / signed contract confirmed" },
+        { id: uid("q"), text: "Utility locate complete" },
+        { id: uid("q"), text: "Pre-build meeting complete" },
       ]},
-      { id: uid(), name: "Excavation", checks: [
-        {id: uid(), text: "Layout confirmed (orientation / setbacks)"},
-        {id: uid(), text: "Depths verified (laser)"},
-        {id: uid(), text: "Steps / shelves located correctly"},
-        {id: uid(), text: "Bond beam height confirmed"},
+      { id: uid("p"), name: "Excavation", checks: [
+        { id: uid("q"), text: "Layout / setbacks confirmed" },
+        { id: uid("q"), text: "Depths verified (laser)" },
+        { id: uid("q"), text: "Steps / shelves positioned correctly" },
       ]},
-      { id: uid(), name: "Shell/Wall Standing", checks: [
-        {id: uid(), text: "Walls plumb / square where applicable"},
-        {id: uid(), text: "Structural alignment verified"},
-        {id: uid(), text: "Penetrations / niches secured"},
+      { id: uid("p"), name: "Shell/Wall Standing", checks: [
+        { id: uid("q"), text: "Walls plumb / alignment verified" },
+        { id: uid("q"), text: "Penetrations / niches secured" },
       ]},
-      { id: uid(), name: "Liner Hang", checks: [
-        {id: uid(), text: "Liner inspected (no defects)"},
-        {id: uid(), text: "Vacuum set & seams positioned correctly"},
-        {id: uid(), text: "Faceplates / gaskets ready & correct"},
+      { id: uid("p"), name: "Liner Hang", checks: [
+        { id: uid("q"), text: "Liner inspected (no defects)" },
+        { id: uid("q"), text: "Vacuum set; seams positioned correctly" },
       ]},
-      { id: uid(), name: "Plumbing Inspection", checks: [
-        {id: uid(), text: "Pressure test completed & logged"},
-        {id: uid(), text: "Valves labeled / routing verified"},
-        {id: uid(), text: "Bonding plan confirmed (as applicable)"},
+      { id: uid("p"), name: "Plumbing Inspection", checks: [
+        { id: uid("q"), text: "Pressure test completed & recorded" },
+        { id: uid("q"), text: "Routing verified / valves labeled" },
       ]},
-      { id: uid(), name: "Backfill Inspection", checks: [
-        {id: uid(), text: "Backfill material acceptable (no debris)"},
-        {id: uid(), text: "Compaction steps followed"},
-        {id: uid(), text: "Rough grade drainage direction confirmed"},
+      { id: uid("p"), name: "Backfill Inspection", checks: [
+        { id: uid("q"), text: "Backfill material acceptable (no debris)" },
+        { id: uid("q"), text: "Compaction steps followed" },
       ]},
-      { id: uid(), name: "Equipment Set Inspection", checks: [
-        {id: uid(), text: "Pad level & service clearances confirmed"},
-        {id: uid(), text: "Plumbing tidy / unions accessible"},
-        {id: uid(), text: "Electrical/bonding completed (as required)"},
+      { id: uid("p"), name: "Equipment Set Inspection", checks: [
+        { id: uid("q"), text: "Pad level & clearances confirmed" },
+        { id: uid("q"), text: "Electrical/bonding complete (as required)" },
       ]},
-      { id: uid(), name: "Deck Framing Inspection", checks: [
-        {id: uid(), text: "Forms set to elevations / slope verified"},
-        {id: uid(), text: "Reinforcement placed per spec"},
-        {id: uid(), text: "Expansion joints planned / placed"},
+      { id: uid("p"), name: "Deck Framing Inspection", checks: [
+        { id: uid("q"), text: "Forms elevations / slope verified" },
+        { id: uid("q"), text: "Reinforcement placed per spec" },
       ]},
-      { id: uid(), name: "Kool Deck inspection", checks: [
-        {id: uid(), text: "Surface prep complete"},
-        {id: uid(), text: "Finish uniform / no weak spots"},
-        {id: uid(), text: "Edges clean / transitions neat"},
+      { id: uid("p"), name: "Kool Deck inspection", checks: [
+        { id: uid("q"), text: "Surface prep complete" },
+        { id: uid("q"), text: "Finish uniform; edges clean" },
       ]},
     ]
   };
-}
 
-function defaultRoster(){
-  return { approvers: [
-    {id: uid(), name: "Warren"},
-    {id: uid(), name: "Superintendent"},
-    {id: uid(), name: "Service Manager"},
-  ]};
-}
+  const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
-function loadState(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
-    const parsed = JSON.parse(raw);
-    parsed.roster ??= defaultRoster();
-    parsed.roster.approvers ??= [];
-    parsed.library ??= defaultLibrary();
-    parsed.projects ??= [];
-    parsed.discrepancies ??= [];
+  const migrateState = (parsed) => {
+    // Allow importing old v1 backups
+    if (!parsed || typeof parsed !== "object") return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
+
+    if (!Array.isArray(parsed.template)) parsed.template = DEFAULT_TEMPLATE;
+    if (!Array.isArray(parsed.customers)) parsed.customers = [];
+
+    // QA template
+    if (!parsed.qaTemplate || !Array.isArray(parsed.qaTemplate.phases) || !Array.isArray(parsed.qaTemplate.approvers)) {
+      parsed.qaTemplate = DEFAULT_QA_TEMPLATE;
+    }
+
+    // Ensure customer QA fields exist (for older customers)
+    parsed.customers.forEach(c => {
+      c.qa ??= null; // IMPORTANT: null means "no snapshot"; we won't backfill automatically (all new only)
+    });
+
     return parsed;
-  } catch(e){
-    return { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
-  }
-}
+  };
 
-let state = loadState();
-let selectedProjectId = state.projects[0]?.id || null;
-
-function saveStateNoRender(){
-  state._lastSaved = Date.now();
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-}
-function saveState(){
-  saveStateNoRender();
-  renderAll();
-}
-
-function touchProject(p){ p.updatedAt = Date.now(); }
-
-function moveItem(arr, from, to){
-  if(to < 0 || to >= arr.length) return;
-  const item = arr.splice(from, 1)[0];
-  arr.splice(to, 0, item);
-}
-
-const elProjectList = document.getElementById("projectList");
-const elDetailTitle = document.getElementById("detailTitle");
-const elDetailPane  = document.getElementById("detailPane");
-const elStatPill    = document.getElementById("statPill");
-const elSearch = document.getElementById("projectSearch");
-const elSort   = document.getElementById("projectSort");
-
-document.getElementById("btnAddProject").addEventListener("click", openAddProject);
-document.getElementById("btnDeleteProject").addEventListener("click", deleteSelectedProject);
-document.getElementById("btnEditLibrary").addEventListener("click", openLibraryEditor);
-document.getElementById("btnEditRoster").addEventListener("click", openRosterEditor);
-document.getElementById("btnDiscrepancies").addEventListener("click", openDiscrepancyCenter);
-document.getElementById("btnExport").addEventListener("click", exportBackup);
-document.getElementById("fileImport").addEventListener("change", importBackup);
-document.getElementById("btnReset").addEventListener("click", resetAll);
-elSearch.addEventListener("input", renderProjects);
-elSort.addEventListener("change", renderProjects);
-
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modalTitle");
-const modalBody = document.getElementById("modalBody");
-document.getElementById("btnCloseModal").addEventListener("click", closeModal);
-modal.addEventListener("click", (e)=>{ if(e.target===modal) closeModal(); });
-
-function openModal(title, node){
-  modalTitle.textContent = title;
-  modalBody.innerHTML = "";
-  modalBody.appendChild(node);
-  modal.style.display = "flex";
-}
-function closeModal(){ modal.style.display = "none"; }
-
-function divHr(){ const d=document.createElement("div"); d.className="hr"; return d; }
-
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
-
-function projectProgress(p){
-  let total=0, done=0;
-  for(const ph of state.library.phases){
-    for(const c of ph.checks){
-      total++;
-      if(p.qa?.[ph.id]?.[c.id]) done++;
+  const loadState = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
+      return migrateState(JSON.parse(raw));
+    } catch {
+      return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
     }
-  }
-  return { total, done, pct: total ? Math.round((done/total)*100) : 0 };
-}
-function openDiscCount(projectId){
-  return state.discrepancies.filter(d => d.projectId===projectId && (d.status||"Open")!=="Resolved").length;
-}
-function chip(k,v){
-  const c=document.createElement("span");
-  c.className="chip";
-  c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
-  return c;
-}
+  };
 
-function renderAll(){
-  renderProjects();
-  renderDetail();
-  elStatPill.textContent = `${state.projects.length} project${state.projects.length===1?"":"s"}`;
-}
+  let state = loadState();
+  const saveState = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
 
-function renderProjects(){
-  const q = elSearch.value.trim().toLowerCase();
-  const sort = elSort.value;
+  let activeCustomerId = state.customers[0]?.id ?? null;
+  let activeTab = "checklist";
 
-  let projects = [...state.projects];
-  if(q) projects = projects.filter(p => (p.name||"").toLowerCase().includes(q));
+  // ----------------- DOM -----------------
+  const $ = (id) => document.getElementById(id);
 
-  projects.sort((a,b)=>{
-    if(sort==="updated_desc") return (b.updatedAt||0)-(a.updatedAt||0);
-    if(sort==="name_asc") return (a.name||"").localeCompare(b.name||"");
-    if(sort==="name_desc") return (b.name||"").localeCompare(a.name||"");
-    if(sort==="created_desc") return (b.createdAt||0)-(a.createdAt||0);
-    if(sort==="created_asc") return (a.createdAt||0)-(b.createdAt||0);
-    return 0;
-  });
+  const customerList = $("customerList");
+  const milestoneList = $("milestoneList");
 
-  elProjectList.innerHTML = "";
-  if(!projects.length){
-    const m=document.createElement("div");
-    m.className="mutedNote";
-    m.textContent = q ? "No projects match your search." : "No projects yet. Click “+ Add”.";
-    elProjectList.appendChild(m);
-    return;
-  }
+  // Left controls
+  $("addCustomerBtn").onclick = () => openCustomerDialog();
+  $("editTemplateBtn").onclick = () => openTemplateDialog();
+  $("editQATemplateBtn").onclick = () => openQATemplateDialog();
+  $("exportBtn").onclick = () => exportJSON();
+  $("importBtn").onclick = () => $("dlgImport").showModal();
+  $("resetBtn").onclick = () => {
+    if (!confirm("Reset local data? This clears customers + templates in this browser.")) return;
+    localStorage.removeItem(LS_KEY);
+    state = loadState();
+    activeCustomerId = state.customers[0]?.id ?? null;
+    render();
+  };
 
-  for(const p of projects){
-    const item=document.createElement("div");
-    item.className="item"+(p.id===selectedProjectId?" active":"");
-    item.addEventListener("click", ()=>{ selectedProjectId=p.id; renderAll(); });
+  $("search").addEventListener("input", () => renderCustomers());
 
-    const title=document.createElement("div");
-    title.className="title";
-    title.textContent=p.name||"Untitled Project";
-
-    const meta=document.createElement("div");
-    meta.className="meta";
-
-    const ph = state.library.phases.find(x=>x.id===p.currentPhaseId) || state.library.phases[0];
-    const prog = projectProgress(p);
-    const open = openDiscCount(p.id);
-
-    meta.appendChild(chip("Phase", ph?ph.name:"—"));
-    meta.appendChild(chip("QA", `${prog.pct}%`));
-    meta.appendChild(chip("Open Discrep.", String(open)));
-    meta.appendChild(chip("Updated", new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString()));
-
-    item.appendChild(title);
-    item.appendChild(meta);
-    elProjectList.appendChild(item);
-  }
-}
-
-function renderDetail(){
-  const p = state.projects.find(x=>x.id===selectedProjectId);
-  if(!p){
-    elDetailTitle.textContent="Select a project";
-    elDetailPane.innerHTML = `<div class="mutedNote">Choose a project on the left. Or click “+ Add”.</div>`;
-    return;
-  }
-
-  p.qa ??= {};
-  p.signoff ??= {};
-  p.notes ??= {};
-  p.builder ??= {name:"", email:""};
-  if(!p.currentPhaseId && state.library.phases[0]) p.currentPhaseId = state.library.phases[0].id;
-
-  elDetailTitle.textContent = p.name || "Untitled Project";
-  const container=document.createElement("div");
-
-  // top controls
-  const top=document.createElement("div");
-  top.className="twoCol";
-  top.innerHTML = `
-    <div>
-      <label>Current Phase</label>
-      <select id="selPhase"></select>
-    </div>
-    <div>
-      <label>Rename Project</label>
-      <input id="inpProjectName" value="${escapeAttr(p.name||"")}" />
-    </div>
-  `;
-  container.appendChild(top);
-
-  const selPhase = top.querySelector("#selPhase");
-  for(const ph of state.library.phases){
-    const opt=document.createElement("option");
-    opt.value=ph.id; opt.textContent=ph.name;
-    if(ph.id===p.currentPhaseId) opt.selected=true;
-    selPhase.appendChild(opt);
-  }
-  selPhase.addEventListener("change", ()=>{
-    p.currentPhaseId = selPhase.value;
-    touchProject(p);
-    saveState(); // dropdown can re-render safely
-  });
-
-  const inpName = top.querySelector("#inpProjectName");
-  inpName.addEventListener("input", ()=>{
-    p.name = inpName.value;
-    touchProject(p);
-    saveStateNoRender(); // typing should NOT re-render
-    // update left list label without rebuilding full page:
-    renderProjects();
-    elDetailTitle.textContent = p.name || "Untitled Project";
-  });
-
-  container.appendChild(divHr());
-
-  // builder contact
-  const builderBox=document.createElement("div");
-  builderBox.className="phaseBox";
-  builderBox.innerHTML = `
-    <div class="phaseTop">
-      <div>
-        <div class="phaseName">Builder / Vendor Contact (for discrepancy reports)</div>
-        <div class="small">Optional, but recommended.</div>
-      </div>
-    </div>
-    <div class="twoCol" style="margin-top:10px;">
-      <div>
-        <label>Builder Name</label>
-        <input id="builderName" value="${escapeAttr(p.builder.name||"")}" placeholder="e.g., ABC Pools - John" />
-      </div>
-      <div>
-        <label>Builder Email</label>
-        <input id="builderEmail" value="${escapeAttr(p.builder.email||"")}" placeholder="name@company.com" />
-      </div>
-    </div>
-  `;
-  builderBox.querySelector("#builderName").addEventListener("input",(e)=>{
-    p.builder.name = e.target.value;
-    touchProject(p);
-    saveStateNoRender();
-  });
-  builderBox.querySelector("#builderEmail").addEventListener("input",(e)=>{
-    p.builder.email = e.target.value;
-    touchProject(p);
-    saveStateNoRender();
-  });
-  container.appendChild(builderBox);
-
-  // phases
-  for(const ph of state.library.phases){
-    const box=document.createElement("div");
-    box.className="phaseBox";
-
-    const total=ph.checks.length;
-    let done=0;
-    for(const c of ph.checks) if(p.qa?.[ph.id]?.[c.id]) done++;
-    const pct = total ? Math.round((done/total)*100) : 0;
-
-    const head=document.createElement("div");
-    head.className="phaseTop";
-    head.innerHTML=`
-      <div>
-        <div class="phaseName">${escapeHtml(ph.name)}</div>
-        <div class="small">${done}/${total} checks complete • ${pct}%</div>
-      </div>
-      <div class="row">
-        <button class="btn ghost" data-action="markAll" data-ph="${ph.id}">Mark all</button>
-        <button class="btn ghost" data-action="clearAll" data-ph="${ph.id}">Clear</button>
-        <button class="btn warn" data-action="newDisc" data-ph="${ph.id}">+ Discrepancy</button>
-      </div>
-    `;
-    box.appendChild(head);
-
-    const checks=document.createElement("div");
-    checks.className="checks";
-    for(const c of ph.checks){
-      const row=document.createElement("div");
-      row.className="checkRow";
-      const checked=!!(p.qa?.[ph.id]?.[c.id]);
-      row.innerHTML=`
-        <input type="checkbox" ${checked?"checked":""} data-ph="${ph.id}" data-ch="${c.id}">
-        <div class="txt">${escapeHtml(c.text)}</div>
-      `;
-      row.querySelector("input").addEventListener("change",(e)=>{
-        p.qa[ph.id] ??= {};
-        p.qa[ph.id][c.id] = e.target.checked;
-        touchProject(p);
-        saveState(); // checkbox ok to re-render
-      });
-      checks.appendChild(row);
+  // Import dialog
+  $("iCancel").onclick = () => $("dlgImport").close();
+  $("iDo").onclick = () => {
+    const raw = $("importText").value.trim();
+    if (!raw) return alert("Paste JSON first.");
+    try {
+      const parsed = migrateState(JSON.parse(raw));
+      state = parsed;
+      activeCustomerId = state.customers[0]?.id ?? null;
+      saveState();
+      $("dlgImport").close();
+      render();
+    } catch {
+      alert("Import failed: JSON parse error.");
     }
-    box.appendChild(checks);
+  };
 
-    const bottom=document.createElement("div");
-    bottom.className="twoCol";
-    bottom.style.marginTop="10px";
+  // Right controls
+  $("deleteCustomerBtn").onclick = () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    if (!confirm(`Delete ${c.name}?`)) return;
+    state.customers = state.customers.filter(x => x.id !== c.id);
+    activeCustomerId = state.customers[0]?.id ?? null;
+    saveState();
+    render();
+  };
 
-    const notes=document.createElement("div");
-    notes.innerHTML=`
-      <label>Notes (Phase)</label>
-      <textarea placeholder="Crew notes, issues, rework required, etc.">${escapeHtml(p.notes?.[ph.id]||"")}</textarea>
-    `;
-    const ta = notes.querySelector("textarea");
-    ta.addEventListener("input", ()=>{
-      p.notes[ph.id] = ta.value;
-      touchProject(p);
-      saveStateNoRender(); // FIX: typing should NOT re-render
+  $("recomputeBtn").onclick = () => {
+    const c = getActiveCustomer();
+    if (!c?.startDate) return alert("Set a start date first (Details tab).");
+    recomputeDueDates(c.id);
+    saveState();
+    render();
+  };
+
+  $("addMilestoneBtn").onclick = () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    const title = prompt("Add a custom milestone (for this customer):");
+    if (!title || !title.trim()) return;
+    c.milestones.unshift({
+      id: uid("m"),
+      title: title.trim(),
+      notes: "",
+      dueDate: "",
+      completed: false,
+      completedAt: ""
     });
+    saveState();
+    render();
+  };
 
-    const sign=document.createElement("div");
-    const s = p.signoff?.[ph.id] || {};
-    sign.innerHTML=`
-      <label>QA Signoff</label>
-      <div class="twoCol">
-        <div>
-          <label style="margin-bottom:6px;">Approved By</label>
-          <select id="appr_${ph.id}"></select>
-        </div>
-        <div>
-          <label style="margin-bottom:6px;">Date</label>
-          <input type="date" id="date_${ph.id}" value="${escapeAttr(s.date||"")}" />
-        </div>
-      </div>
-      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn ok" data-action="setToday" data-ph="${ph.id}">Set date = Today</button>
-        <button class="btn bad" data-action="clearSign" data-ph="${ph.id}">Clear signoff</button>
-      </div>
-      <div class="mutedNote" style="margin-top:10px;">Edit dropdown list using “Edit QA Roster”.</div>
-    `;
-
-    const sel = sign.querySelector(`#appr_${CSS.escape(ph.id)}`);
-    const emptyOpt=document.createElement("option");
-    emptyOpt.value=""; emptyOpt.textContent="— Select approver —";
-    sel.appendChild(emptyOpt);
-    for(const a of state.roster.approvers){
-      const opt=document.createElement("option");
-      opt.value=a.id; opt.textContent=a.name;
-      if(a.id===s.approverId) opt.selected=true;
-      sel.appendChild(opt);
-    }
-    sel.addEventListener("change", ()=>{
-      p.signoff[ph.id] ??= {};
-      p.signoff[ph.id].approverId = sel.value || "";
-      touchProject(p);
-      saveState(); // dropdown ok to re-render
-    });
-
-    const dateInput = sign.querySelector(`#date_${CSS.escape(ph.id)}`);
-    dateInput.addEventListener("input", ()=>{
-      p.signoff[ph.id] ??= {};
-      p.signoff[ph.id].date = dateInput.value;
-      touchProject(p);
-      saveStateNoRender(); // typing/selecting date shouldn't rebuild
-    });
-
-    bottom.appendChild(notes);
-    bottom.appendChild(sign);
-    box.appendChild(bottom);
-
-    container.appendChild(box);
-  }
-
-  // action buttons
-  container.querySelectorAll("button[data-action]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const action=btn.getAttribute("data-action");
-      const phid=btn.getAttribute("data-ph");
-      const ph = state.library.phases.find(x=>x.id===phid);
-      if(!ph) return;
-
-      if(action==="markAll"){
-        p.qa[phid] ??= {};
-        for(const c of ph.checks) p.qa[phid][c.id]=true;
-        touchProject(p); saveState();
-      }
-      if(action==="clearAll"){
-        p.qa[phid]={};
-        touchProject(p); saveState();
-      }
-      if(action==="setToday"){
-        const d=new Date();
-        const yyyy=d.getFullYear();
-        const mm=String(d.getMonth()+1).padStart(2,"0");
-        const dd=String(d.getDate()).padStart(2,"0");
-        p.signoff[phid] ??= {};
-        p.signoff[phid].date = `${yyyy}-${mm}-${dd}`;
-        touchProject(p); saveState();
-      }
-      if(action==="clearSign"){
-        p.signoff[phid] = {};
-        touchProject(p); saveState();
-      }
-      if(action==="newDisc"){
-        openNewDiscrepancy(p.id, phid);
-      }
-    });
-  });
-
-  elDetailPane.innerHTML="";
-  elDetailPane.appendChild(container);
-}
-
-function openAddProject(){
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div>
-      <label>Project / Customer Name</label>
-      <input id="newProjectName" placeholder="e.g., Smith Pool - Richmond Hill" />
-    </div>
-    <div class="hr"></div>
-    <div>
-      <label>Starting Phase</label>
-      <select id="newProjectPhase"></select>
-      <div class="mutedNote" style="margin-top:8px;">You can change the phase later.</div>
-    </div>
-    <div class="hr"></div>
-    <div class="twoCol">
-      <div>
-        <label>Builder Name (optional)</label>
-        <input id="newBuilderName" placeholder="e.g., ABC Pools - John" />
-      </div>
-      <div>
-        <label>Builder Email (optional)</label>
-        <input id="newBuilderEmail" placeholder="name@company.com" />
-      </div>
-    </div>
-    <div class="hr"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="btnCreate">Create Project</button>
-      <button class="btn ghost" id="btnCancel">Cancel</button>
-    </div>
-  `;
-
-  const sel=body.querySelector("#newProjectPhase");
-  for(const ph of state.library.phases){
-    const opt=document.createElement("option");
-    opt.value=ph.id; opt.textContent=ph.name;
-    sel.appendChild(opt);
-  }
-
-  body.querySelector("#btnCancel").addEventListener("click", closeModal);
-  body.querySelector("#btnCreate").addEventListener("click", ()=>{
-    const name=body.querySelector("#newProjectName").value.trim() || "Untitled Project";
-    const phaseId=sel.value;
-    const builderName=body.querySelector("#newBuilderName").value.trim();
-    const builderEmail=body.querySelector("#newBuilderEmail").value.trim();
-
-    const now=Date.now();
-    const proj={
-      id: uid(),
-      name,
-      createdAt: now,
-      updatedAt: now,
-      currentPhaseId: phaseId,
-      qa: {},
-      signoff: {},
-      notes: {},
-      builder: {name: builderName, email: builderEmail}
+  // Tabs
+  document.querySelectorAll("#tabs .tab").forEach(tab => {
+    tab.onclick = () => {
+      activeTab = tab.dataset.tab;
+      renderRight();
     };
-    state.projects.unshift(proj);
-    selectedProjectId = proj.id;
-    saveState();
-    closeModal();
   });
 
-  openModal("Add Project", body);
-}
+  // Detail inputs
+  const bindDetailInputs = () => {
+    const c = getActiveCustomer();
+    if (!c) return;
 
-function deleteSelectedProject(){
-  const p = state.projects.find(x=>x.id===selectedProjectId);
-  if(!p) return;
+    const map = [
+      ["dName", "name"],
+      ["dPhone", "phone"],
+      ["dEmail", "email"],
+      ["dAddress", "address"],
+      ["dStartDate", "startDate"],
+    ];
 
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div class="danger" style="font-weight:800;">Delete this project?</div>
-    <div class="mutedNote" style="margin-top:8px;">This deletes <b>${escapeHtml(p.name)}</b> and its discrepancies from this browser. Export first if needed.</div>
-    <div class="hr"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn bad" id="confirmDel">Yes, delete</button>
-      <button class="btn ghost" id="cancelDel">Cancel</button>
-    </div>
-  `;
-  body.querySelector("#cancelDel").addEventListener("click", closeModal);
-  body.querySelector("#confirmDel").addEventListener("click", ()=>{
-    state.projects = state.projects.filter(x=>x.id!==selectedProjectId);
-    state.discrepancies = state.discrepancies.filter(d=>d.projectId!==selectedProjectId);
-    selectedProjectId = state.projects[0]?.id || null;
+    map.forEach(([id, key]) => {
+      const el = $(id);
+      el.value = c[key] || "";
+      el.oninput = () => {
+        c[key] = el.value || "";
+        saveState();
+        renderCustomers();
+        renderHeaderMeta();
+        renderStats();
+      };
+    });
+  };
+
+  // ----------------- Dialogs -----------------
+  function openCustomerDialog(){
+    $("cName").value = "";
+    $("cPhone").value = "";
+    $("cEmail").value = "";
+    $("cAddress").value = "";
+    $("cStartDate").value = "";
+    $("dlgCustomer").showModal();
+  }
+  $("cCancel").onclick = () => $("dlgCustomer").close();
+  $("cCreate").onclick = () => {
+    const name = $("cName").value.trim();
+    if (!name) return alert("Name is required.");
+    const phone = $("cPhone").value.trim();
+    const email = $("cEmail").value.trim();
+    const address = $("cAddress").value.trim();
+    const startDate = $("cStartDate").value;
+
+    const milestones = state.template.map(t => {
+      const dueDate = startDate && typeof t.defaultDaysBeforeStart === "number"
+        ? addDays(startDate, -Number(t.defaultDaysBeforeStart))
+        : "";
+      return {
+        id: uid("m"),
+        title: t.title,
+        notes: t.notes || "",
+        dueDate,
+        completed: false,
+        completedAt: ""
+      };
+    });
+
+    // IMPORTANT: NEW only -> snapshot QA template into customer.qa
+    const qaSnap = {
+      approvers: clone(state.qaTemplate.approvers),
+      phases: clone(state.qaTemplate.phases),
+      done: {},        // phaseId -> checkId -> bool
+      notes: {},       // phaseId -> string
+      signoff: {},     // phaseId -> { approverId, date }
+      issues: []       // {id, phaseId, title, desc, status, createdAt}
+    };
+
+    const customer = {
+      id: uid("c"),
+      name,
+      phone, email, address,
+      startDate: startDate || "",
+      createdAt: new Date().toISOString(),
+      milestones,
+      tags: [],
+      qa: qaSnap
+    };
+
+    state.customers.unshift(customer);
+    activeCustomerId = customer.id;
     saveState();
-    closeModal();
-  });
-  openModal("Confirm Delete", body);
-}
+    $("dlgCustomer").close();
+    render();
+  };
 
-/* ---------- Roster ---------- */
-function openRosterEditor(){
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div class="mutedNote">Controls the “Approved By” dropdown for signoffs.</div>
-    <div class="hr"></div>
-    <div id="rosterList" class="list"></div>
-    <div class="hr"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="addApprover">+ Add Approver</button>
-      <button class="btn ghost" id="done">Done</button>
-    </div>
-  `;
-  const rosterList=body.querySelector("#rosterList");
+  function openTemplateDialog(){
+    renderTemplateEditor();
+    $("dlgTemplate").showModal();
+  }
+  $("tCancel").onclick = () => $("dlgTemplate").close();
+  $("tAdd").onclick = () => {
+    state.template.unshift({ id: uid("t"), title: "New milestone", notes:"", defaultDaysBeforeStart: 7 });
+    renderTemplateEditor();
+  };
+  $("tSave").onclick = () => {
+    state.template = state.template
+      .map(t => ({
+        ...t,
+        title: (t.title || "").trim(),
+        notes: (t.notes || "").trim()
+      }))
+      .filter(t => t.title.length > 0);
 
-  function draw(){
-    rosterList.innerHTML="";
-    if(!state.roster.approvers.length){
-      const m=document.createElement("div");
-      m.className="mutedNote";
-      m.textContent="No approvers yet.";
-      rosterList.appendChild(m);
-    }
-    for(const a of state.roster.approvers){
-      const row=document.createElement("div");
-      row.className="checkRow";
-      row.innerHTML=`
-        <div style="flex:1">
-          <label style="margin-bottom:6px;">Approver Name</label>
-          <input value="${escapeAttr(a.name)}" />
-        </div>
-        <button class="btn bad">Delete</button>
-      `;
-      row.querySelector("input").addEventListener("input",(e)=>{
-        a.name = e.target.value;
-        saveStateNoRender();
-      });
-      row.querySelector("button").addEventListener("click", ()=>{
-        state.roster.approvers = state.roster.approvers.filter(x=>x.id!==a.id);
-        // clear any signoffs that used this approver
-        for(const p of state.projects){
-          for(const phid of Object.keys(p.signoff||{})){
-            if(p.signoff[phid]?.approverId===a.id){
-              p.signoff[phid].approverId="";
-            }
-          }
-        }
-        saveStateNoRender();
-        draw();
-      });
-      rosterList.appendChild(row);
-    }
+    saveState();
+    $("dlgTemplate").close();
+    render();
+  };
+
+  // -------- QA Template Editor (drag reorder) --------
+  function openQATemplateDialog(){
+    renderQATemplateEditor();
+    $("dlgQATemplate").showModal();
+  }
+  $("qaTCancel").onclick = () => $("dlgQATemplate").close();
+  $("qaTSave").onclick = () => {
+    // Trim + clean
+    state.qaTemplate.approvers = state.qaTemplate.approvers
+      .map(a => ({...a, name:(a.name||"").trim()}))
+      .filter(a => a.name.length > 0);
+
+    state.qaTemplate.phases = state.qaTemplate.phases
+      .map(p => ({
+        ...p,
+        name:(p.name||"").trim(),
+        checks: (p.checks||[])
+          .map(ch => ({...ch, text:(ch.text||"").trim()}))
+          .filter(ch => ch.text.length > 0)
+      }))
+      .filter(p => p.name.length > 0);
+
+    saveState();
+    $("dlgQATemplate").close();
+    render(); // only affects new customers going forward
+  };
+
+  $("qaAddApproverBtn").onclick = () => {
+    state.qaTemplate.approvers.push({ id: uid("a"), name: "New approver" });
+    renderQATemplateEditor();
+  };
+
+  $("qaAddPhaseBtn").onclick = () => {
+    state.qaTemplate.phases.push({ id: uid("p"), name: "New phase", checks: [] });
+    renderQATemplateEditor();
+  };
+
+  // Simple drag/drop reorder helper (works for phases and checks)
+  function makeDraggableList(container, items, onReorder){
+    let dragIndex = null;
+
+    container.querySelectorAll("[data-draggable]").forEach((el, idx) => {
+      el.setAttribute("draggable", "true");
+
+      el.ondragstart = (e) => {
+        dragIndex = idx;
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", String(idx)); } catch {}
+      };
+
+      el.ondragover = (e) => {
+        e.preventDefault();
+        el.classList.add("dropHint");
+      };
+      el.ondragleave = () => el.classList.remove("dropHint");
+      el.ondrop = (e) => {
+        e.preventDefault();
+        el.classList.remove("dropHint");
+        const from = dragIndex;
+        const to = idx;
+        if (from === null || from === to) return;
+        const moved = items.splice(from, 1)[0];
+        items.splice(to, 0, moved);
+        dragIndex = null;
+        onReorder();
+      };
+      el.ondragend = () => { dragIndex = null; el.classList.remove("dropHint"); };
+    });
   }
 
-  body.querySelector("#addApprover").addEventListener("click", ()=>{
-    state.roster.approvers.push({id: uid(), name:"New Approver"});
-    saveStateNoRender();
-    draw();
-  });
-  body.querySelector("#done").addEventListener("click", ()=>{
-    saveState();
-    closeModal();
-  });
+  function renderQATemplateEditor(){
+    const phaseHost = $("qaPhaseEditor");
+    const apprHost = $("qaApproverEditor");
+    phaseHost.innerHTML = "";
+    apprHost.innerHTML = "";
 
-  draw();
-  openModal("Edit QA Roster", body);
-}
-
-/* ---------- Library (with re-order) ---------- */
-function openLibraryEditor(){
-  const body=document.createElement("div");
-  const header=document.createElement("div");
-  header.className="mutedNote";
-  header.textContent="Edit phases/checks. Use ↑ ↓ to reorder where they belong.";
-  body.appendChild(header);
-  body.appendChild(divHr());
-
-  const list=document.createElement("div");
-  list.className="list";
-  body.appendChild(list);
-
-  function draw(){
-    list.innerHTML="";
-
-    const addPhase=document.createElement("button");
-    addPhase.className="btn ok";
-    addPhase.textContent="+ Add Phase";
-    addPhase.addEventListener("click", ()=>{
-      state.library.phases.push({id: uid(), name:"New Phase", checks:[]});
-      saveStateNoRender();
-      draw();
-    });
-    list.appendChild(addPhase);
-
-    state.library.phases.forEach((ph, phaseIndex)=>{
-      const box=document.createElement("div");
-      box.className="phaseBox";
-
-      const top=document.createElement("div");
-      top.className="phaseTop";
-      top.innerHTML=`
-        <div style="flex:1; min-width:240px;">
-          <label>Phase Name</label>
-          <input class="phName" value="${escapeAttr(ph.name)}" />
-        </div>
-        <div class="row">
-          <button class="btn ghost" data-action="phaseUp">↑</button>
-          <button class="btn ghost" data-action="phaseDown">↓</button>
-          <button class="btn ghost" data-action="addCheck">+ Add Check</button>
-          <button class="btn bad" data-action="delPhase">Delete Phase</button>
-        </div>
-      `;
-      box.appendChild(top);
-
-      top.querySelector("input.phName").addEventListener("input",(e)=>{
-        ph.name = e.target.value;
-        saveStateNoRender();
-        renderProjects();
-        elDetailTitle.textContent = (state.projects.find(x=>x.id===selectedProjectId)?.name)||"Select a project";
-      });
-
-      const btns = top.querySelectorAll("button[data-action]");
-      btns.forEach(b=>{
-        b.addEventListener("click", ()=>{
-          const action=b.getAttribute("data-action");
-
-          if(action==="phaseUp"){
-            moveItem(state.library.phases, phaseIndex, phaseIndex-1);
-            saveStateNoRender(); draw(); renderAll();
-          }
-          if(action==="phaseDown"){
-            moveItem(state.library.phases, phaseIndex, phaseIndex+1);
-            saveStateNoRender(); draw(); renderAll();
-          }
-          if(action==="addCheck"){
-            ph.checks.push({id: uid(), text:"New Check"});
-            saveStateNoRender(); draw(); renderDetail();
-          }
-          if(action==="delPhase"){
-            const ok=confirm("Delete this phase?");
-            if(!ok) return;
-            const phid = ph.id;
-            state.library.phases = state.library.phases.filter(x=>x.id!==phid);
-            for(const p of state.projects){
-              delete (p.qa||{})[phid];
-              delete (p.signoff||{})[phid];
-              delete (p.notes||{})[phid];
-              if(p.currentPhaseId===phid) p.currentPhaseId = state.library.phases[0]?.id || null;
-            }
-            for(const d of state.discrepancies){
-              if(d.phaseId===phid) d.phaseId="";
-            }
-            saveStateNoRender(); draw(); renderAll();
-          }
-        });
-      });
-
-      const checks=document.createElement("div");
-      checks.className="checks";
-
-      if(!ph.checks.length){
-        const m=document.createElement("div");
-        m.className="mutedNote";
-        m.textContent="No checks yet.";
-        checks.appendChild(m);
-      } else {
-        ph.checks.forEach((c, checkIndex)=>{
-          const row=document.createElement("div");
-          row.className="checkRow";
-          row.innerHTML=`
-            <div style="flex:1">
-              <input class="chText" value="${escapeAttr(c.text)}" />
+    // Approvers
+    if (!state.qaTemplate.approvers.length){
+      apprHost.innerHTML = `<div class="muted">No approvers yet. Add a name.</div>`;
+    } else {
+      state.qaTemplate.approvers.forEach(a => {
+        const row = document.createElement("div");
+        row.className = "mrow";
+        row.innerHTML = `
+          <div class="two">
+            <div>
+              <div class="hint">Name</div>
+              <input value="${escapeAttr(a.name)}" data-name />
             </div>
-            <button class="btn ghost" data-action="checkUp">↑</button>
-            <button class="btn ghost" data-action="checkDown">↓</button>
-            <button class="btn bad" data-action="delCheck">Delete</button>
-          `;
-          row.querySelector("input.chText").addEventListener("input",(e)=>{
-            c.text = e.target.value;
-            saveStateNoRender();
-          });
+            <div class="row" style="justify-content:flex-end; align-items:flex-end">
+              <button class="btn danger" data-del>Delete</button>
+            </div>
+          </div>
+        `;
+        row.querySelector("[data-name]").oninput = (e) => { a.name = e.target.value; saveState(); };
+        row.querySelector("[data-del]").onclick = () => {
+          state.qaTemplate.approvers = state.qaTemplate.approvers.filter(x => x.id !== a.id);
+          renderQATemplateEditor();
+        };
+        apprHost.appendChild(row);
+      });
+    }
 
-          row.querySelectorAll("button[data-action]").forEach(b=>{
-            b.addEventListener("click", ()=>{
-              const action=b.getAttribute("data-action");
-
-              if(action==="checkUp"){
-                moveItem(ph.checks, checkIndex, checkIndex-1);
-                saveStateNoRender(); draw(); renderDetail();
-              }
-              if(action==="checkDown"){
-                moveItem(ph.checks, checkIndex, checkIndex+1);
-                saveStateNoRender(); draw(); renderDetail();
-              }
-              if(action==="delCheck"){
-                const ok=confirm("Delete this check?");
-                if(!ok) return;
-                const chid=c.id;
-                ph.checks = ph.checks.filter(x=>x.id!==chid);
-                for(const p of state.projects){
-                  if(p.qa?.[ph.id]) delete p.qa[ph.id][chid];
-                }
-                saveStateNoRender(); draw(); renderDetail();
-              }
-            });
-          });
-
-          checks.appendChild(row);
-        });
-      }
-
-      box.appendChild(checks);
-      list.appendChild(box);
-    });
-  }
-
-  draw();
-  body.appendChild(divHr());
-  const footer=document.createElement("div");
-  footer.className="mutedNote";
-  footer.textContent="After big edits, Export Backup so your template is safe.";
-  body.appendChild(footer);
-
-  openModal("Edit Library (Reorder Phases + Checks)", body);
-}
-
-/* ---------- Discrepancies ---------- */
-function statusTag(status){
-  const s=(status||"Open");
-  let cls="open";
-  if(s==="In Progress") cls="progress";
-  if(s==="Resolved") cls="resolved";
-  return `<span class="tag ${cls}">${escapeHtml(s)}</span>`;
-}
-
-function openDiscrepancyCenter(){
-  const p = state.projects.find(x=>x.id===selectedProjectId);
-  const body=document.createElement("div");
-
-  const header=document.createElement("div");
-  header.className="mutedNote";
-  header.textContent = p ? `Discrepancies for: ${p.name}` : "Select a project first.";
-  body.appendChild(header);
-  body.appendChild(divHr());
-
-  const actions=document.createElement("div");
-  actions.style.display="flex"; actions.style.gap="10px"; actions.style.flexWrap="wrap";
-  actions.innerHTML=`
-    <button class="btn ok" id="newDisc">+ New Discrepancy</button>
-    <button class="btn blue" id="builderReport">Generate Builder Report</button>
-    <button class="btn ghost" id="close">Close</button>
-  `;
-  body.appendChild(actions);
-
-  const listWrap=document.createElement("div");
-  listWrap.style.marginTop="12px";
-  body.appendChild(listWrap);
-
-  function draw(){
-    listWrap.innerHTML="";
-    if(!p){ listWrap.innerHTML=`<div class="mutedNote">No project selected.</div>`; return; }
-
-    const discs = state.discrepancies
-      .filter(d=>d.projectId===p.id)
-      .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
-
-    if(!discs.length){
-      listWrap.innerHTML=`<div class="mutedNote">No discrepancies yet.</div>`;
+    // Phases + checks
+    if (!state.qaTemplate.phases.length){
+      phaseHost.innerHTML = `<div class="muted">No phases yet. Add a phase.</div>`;
       return;
     }
 
-    const table=document.createElement("table");
-    table.className="table";
-    table.innerHTML=`
-      <thead><tr>
-        <th>When</th><th>Phase</th><th>Severity</th><th>Status</th><th>Title</th><th>Assigned</th><th>Due</th><th></th>
-      </tr></thead>
-      <tbody></tbody>
-    `;
-    const tb=table.querySelector("tbody");
-    for(const d of discs){
-      const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
-      const tr=document.createElement("tr");
-      tr.innerHTML=`
-        <td>${escapeHtml(new Date(d.createdAt).toLocaleDateString())}</td>
-        <td>${escapeHtml(phName)}</td>
-        <td>${escapeHtml(d.severity||"Medium")}</td>
-        <td>${statusTag(d.status||"Open")}</td>
-        <td>${escapeHtml(d.title||"")}</td>
-        <td>${escapeHtml(d.assignedTo||"")}</td>
-        <td>${escapeHtml(d.dueDate||"")}</td>
-        <td><button class="btn ghost" data-edit="${d.id}">Edit</button></td>
+    state.qaTemplate.phases.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "mrow";
+      card.setAttribute("data-draggable", "1");
+      card.innerHTML = `
+        <div class="dragRow">
+          <div class="grab" title="Drag to reorder">≡</div>
+          <div style="flex:1">
+            <div class="hint">Phase name</div>
+            <input value="${escapeAttr(p.name)}" data-pname />
+          </div>
+          <button class="btn danger" data-delphase>Delete</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row wrap" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:800">Checks</div>
+            <div class="hint">Drag to reorder checks in this phase.</div>
+          </div>
+          <button class="btn secondary" data-addcheck>+ Add check</button>
+        </div>
+
+        <div data-checks style="display:flex; flex-direction:column; gap:10px; margin-top:10px"></div>
       `;
-      tr.querySelector("button").addEventListener("click", ()=>openEditDiscrepancy(d.id, draw));
-      tb.appendChild(tr);
-    }
-    listWrap.appendChild(table);
-  }
 
-  actions.querySelector("#close").addEventListener("click", closeModal);
-  actions.querySelector("#newDisc").addEventListener("click", ()=>{ if(p) openNewDiscrepancy(p.id, p.currentPhaseId||""); });
-  actions.querySelector("#builderReport").addEventListener("click", ()=>{ if(p) openBuilderReport(p.id); });
+      card.querySelector("[data-pname]").oninput = (e) => { p.name = e.target.value; saveState(); };
+      card.querySelector("[data-delphase]").onclick = () => {
+        if (!confirm("Delete this phase from the template?")) return;
+        state.qaTemplate.phases = state.qaTemplate.phases.filter(x => x.id !== p.id);
+        renderQATemplateEditor();
+      };
+      card.querySelector("[data-addcheck]").onclick = () => {
+        p.checks.push({ id: uid("q"), text: "New QA check" });
+        renderQATemplateEditor();
+      };
 
-  draw();
-  openModal("Discrepancy Reports", body);
-}
+      const checksHost = card.querySelector("[data-checks]");
+      if (!p.checks.length){
+        checksHost.innerHTML = `<div class="muted">No checks yet. Add a check.</div>`;
+      } else {
+        p.checks.forEach((ch) => {
+          const row = document.createElement("div");
+          row.className = "mrow";
+          row.style.padding = "10px";
+          row.setAttribute("data-draggable", "1");
+          row.innerHTML = `
+            <div class="dragRow">
+              <div class="grab" title="Drag to reorder">≡</div>
+              <div style="flex:1">
+                <div class="hint">Check text</div>
+                <input value="${escapeAttr(ch.text)}" data-ctext />
+              </div>
+              <button class="btn danger" data-del>Delete</button>
+            </div>
+          `;
+          row.querySelector("[data-ctext]").oninput = (e) => { ch.text = e.target.value; saveState(); };
+          row.querySelector("[data-del]").onclick = () => {
+            p.checks = p.checks.filter(x => x.id !== ch.id);
+            renderQATemplateEditor();
+          };
+          checksHost.appendChild(row);
+        });
 
-function openNewDiscrepancy(projectId, phaseId){
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div class="twoCol">
-      <div><label>Phase</label><select id="phase"></select></div>
-      <div><label>Severity</label>
-        <select id="sev">
-          <option>Low</option>
-          <option selected>Medium</option>
-          <option>High</option>
-          <option>Critical</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="twoCol" style="margin-top:12px;">
-      <div><label>Status</label>
-        <select id="status">
-          <option selected>Open</option>
-          <option>In Progress</option>
-          <option>Resolved</option>
-        </select>
-      </div>
-      <div><label>Due Date</label><input type="date" id="due"/></div>
-    </div>
-
-    <div class="twoCol" style="margin-top:12px;">
-      <div><label>Assigned To</label><input id="assigned" placeholder="e.g., Mike / ABC Builder"/></div>
-      <div><label>Reported By</label><input id="reported" placeholder="e.g., Warren"/></div>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Title</label><input id="title" placeholder="Short: what’s wrong?"/>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Description / Required Fix</label><textarea id="desc"></textarea>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Photo Links (one per line)</label><textarea id="photos"></textarea>
-    </div>
-
-    <div class="hr"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="save">Save</button>
-      <button class="btn ghost" id="cancel">Cancel</button>
-    </div>
-  `;
-
-  const sel=body.querySelector("#phase");
-  for(const ph of state.library.phases){
-    const opt=document.createElement("option");
-    opt.value=ph.id; opt.textContent=ph.name;
-    if(ph.id===phaseId) opt.selected=true;
-    sel.appendChild(opt);
-  }
-
-  body.querySelector("#cancel").addEventListener("click", closeModal);
-  body.querySelector("#save").addEventListener("click", ()=>{
-    const now=Date.now();
-    state.discrepancies.unshift({
-      id: uid(),
-      projectId,
-      phaseId: sel.value,
-      createdAt: now,
-      updatedAt: now,
-      title: body.querySelector("#title").value.trim(),
-      description: body.querySelector("#desc").value.trim(),
-      severity: body.querySelector("#sev").value,
-      status: body.querySelector("#status").value,
-      assignedTo: body.querySelector("#assigned").value.trim(),
-      dueDate: body.querySelector("#due").value,
-      reportedBy: body.querySelector("#reported").value.trim(),
-      photoLinks: body.querySelector("#photos").value.split("\n").map(s=>s.trim()).filter(Boolean)
-    });
-
-    const p=state.projects.find(x=>x.id===projectId);
-    if(p) touchProject(p);
-    saveState();
-    closeModal();
-  });
-
-  openModal("New Discrepancy", body);
-}
-
-function openEditDiscrepancy(discId, onDone){
-  const d = state.discrepancies.find(x=>x.id===discId);
-  if(!d) return;
-
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div class="twoCol">
-      <div><label>Phase</label><select id="phase"></select></div>
-      <div><label>Severity</label>
-        <select id="sev">
-          <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="twoCol" style="margin-top:12px;">
-      <div><label>Status</label>
-        <select id="status">
-          <option>Open</option><option>In Progress</option><option>Resolved</option>
-        </select>
-      </div>
-      <div><label>Due Date</label><input type="date" id="due"/></div>
-    </div>
-
-    <div class="twoCol" style="margin-top:12px;">
-      <div><label>Assigned To</label><input id="assigned"/></div>
-      <div><label>Reported By</label><input id="reported"/></div>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Title</label><input id="title"/>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Description / Required Fix</label><textarea id="desc"></textarea>
-    </div>
-
-    <div style="margin-top:12px;">
-      <label>Photo Links (one per line)</label><textarea id="photos"></textarea>
-    </div>
-
-    <div class="hr"></div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ok" id="save">Save</button>
-      <button class="btn bad" id="del">Delete</button>
-      <button class="btn ghost" id="close">Close</button>
-    </div>
-  `;
-
-  const sel=body.querySelector("#phase");
-  for(const ph of state.library.phases){
-    const opt=document.createElement("option");
-    opt.value=ph.id; opt.textContent=ph.name;
-    if(ph.id===d.phaseId) opt.selected=true;
-    sel.appendChild(opt);
-  }
-
-  body.querySelector("#sev").value = d.severity || "Medium";
-  body.querySelector("#status").value = d.status || "Open";
-  body.querySelector("#due").value = d.dueDate || "";
-  body.querySelector("#assigned").value = d.assignedTo || "";
-  body.querySelector("#reported").value = d.reportedBy || "";
-  body.querySelector("#title").value = d.title || "";
-  body.querySelector("#desc").value = d.description || "";
-  body.querySelector("#photos").value = (d.photoLinks||[]).join("\n");
-
-  body.querySelector("#close").addEventListener("click", ()=>{ closeModal(); onDone?.(); });
-  body.querySelector("#save").addEventListener("click", ()=>{
-    d.phaseId = sel.value;
-    d.severity = body.querySelector("#sev").value;
-    d.status = body.querySelector("#status").value;
-    d.dueDate = body.querySelector("#due").value;
-    d.assignedTo = body.querySelector("#assigned").value.trim();
-    d.reportedBy = body.querySelector("#reported").value.trim();
-    d.title = body.querySelector("#title").value.trim();
-    d.description = body.querySelector("#desc").value.trim();
-    d.photoLinks = body.querySelector("#photos").value.split("\n").map(s=>s.trim()).filter(Boolean);
-    d.updatedAt = Date.now();
-    saveState();
-    onDone?.();
-    closeModal();
-  });
-  body.querySelector("#del").addEventListener("click", ()=>{
-    const ok=confirm("Delete this discrepancy?");
-    if(!ok) return;
-    state.discrepancies = state.discrepancies.filter(x=>x.id!==d.id);
-    saveState();
-    onDone?.();
-    closeModal();
-  });
-
-  openModal("Edit Discrepancy", body);
-}
-
-function openBuilderReport(projectId){
-  const p = state.projects.find(x=>x.id===projectId);
-  if(!p) return;
-
-  const discs = state.discrepancies
-    .filter(d => d.projectId===projectId && (d.status||"Open")!=="Resolved")
-    .sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
-
-  const subject = `Discrepancy Report – ${p.name}`;
-  const lines=[];
-  lines.push(`Builder Discrepancy Report`);
-  lines.push(`Project: ${p.name}`);
-  lines.push(`Builder: ${p.builder?.name || "—"}`);
-  lines.push(`Date: ${new Date().toLocaleDateString()}`);
-  lines.push("");
-
-  if(!discs.length){
-    lines.push("No OPEN discrepancies at this time.");
-  } else {
-    discs.forEach((d, idx)=>{
-      const phName = state.library.phases.find(x=>x.id===d.phaseId)?.name || "—";
-      lines.push(`${idx+1}) ${d.title || "(No title)"}`);
-      lines.push(`   Phase: ${phName}`);
-      lines.push(`   Severity: ${d.severity || "Medium"} | Status: ${d.status || "Open"}`);
-      if(d.assignedTo) lines.push(`   Assigned: ${d.assignedTo}`);
-      if(d.dueDate) lines.push(`   Due: ${d.dueDate}`);
-      if(d.reportedBy) lines.push(`   Reported By: ${d.reportedBy}`);
-      if(d.description) lines.push(`   Details: ${d.description}`);
-      if((d.photoLinks||[]).length){
-        lines.push(`   Photos:`);
-        d.photoLinks.forEach(link=>lines.push(`     - ${link}`));
+        // Enable drag reorder checks
+        makeDraggableList(checksHost, p.checks, () => renderQATemplateEditor());
       }
-      lines.push("");
+
+      phaseHost.appendChild(card);
+    });
+
+    // Enable drag reorder phases
+    makeDraggableList(phaseHost, state.qaTemplate.phases, () => renderQATemplateEditor());
+  }
+
+  // ----------------- Logic -----------------
+  function getActiveCustomer(){
+    return state.customers.find(c => c.id === activeCustomerId) || null;
+  }
+
+  function recomputeDueDates(customerId){
+    const c = state.customers.find(x => x.id === customerId);
+    if (!c?.startDate) return;
+
+    const map = new Map(state.template.map(t => [t.title, t.defaultDaysBeforeStart]));
+    c.milestones.forEach(m => {
+      const days = map.get(m.title);
+      if (typeof days === "number" && c.startDate) {
+        m.dueDate = addDays(c.startDate, -days);
+      }
     });
   }
-  lines.push("Requested Action: Please confirm receipt and provide ETA for each correction.");
-  const emailText = lines.join("\n");
 
-  const body=document.createElement("div");
-  body.innerHTML=`
-    <div class="twoCol">
-      <div>
-        <label>To (Builder Email)</label>
-        <input id="to" value="${escapeAttr((p.builder?.email||"").trim())}" placeholder="name@company.com"/>
-      </div>
-      <div>
-        <label>Subject</label>
-        <input id="subj" value="${escapeAttr(subject)}"/>
-      </div>
-    </div>
+  function toggleMilestone(custId, milestoneId){
+    const c = state.customers.find(x => x.id === custId);
+    if (!c) return;
+    const m = c.milestones.find(x => x.id === milestoneId);
+    if (!m) return;
+    m.completed = !m.completed;
+    m.completedAt = m.completed ? new Date().toISOString() : "";
+    saveState();
+    renderRight();
+    renderCustomers();
+    renderStats();
+  }
 
-    <div style="margin-top:12px;">
-      <label>Report Body (Copy/Paste)</label>
-      <textarea id="txt" class="mono" style="min-height:280px;"></textarea>
-      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn blue" id="copy">Copy Report</button>
-        <button class="btn ok" id="print">Print / Save as PDF</button>
-        <button class="btn ghost" id="close">Close</button>
-      </div>
-    </div>
-  `;
-  const txt=body.querySelector("#txt");
-  txt.value=emailText;
+  function exportJSON(){
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pool-tracker-backup_${isoToday()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
-  body.querySelector("#close").addEventListener("click", closeModal);
-  body.querySelector("#copy").addEventListener("click", async ()=>{
-    try{ await navigator.clipboard.writeText(txt.value); alert("Copied."); }
-    catch{ txt.focus(); txt.select(); alert("Press Ctrl+C to copy."); }
-  });
+  // -------- Red Tasks Report --------
+  function buildRedReport(){
+    const c = getActiveCustomer();
+    if (!c) return;
 
-  // SAFE PRINT: no embedded <\/script>
- anywhere
-  body.querySelector("#print").addEventListener("click", ()=>{
-    const to=body.querySelector("#to").value.trim();
-    const subj=body.querySelector("#subj").value.trim();
-    const content=txt.value;
+    const today = isoToday();
+    const overdueOnly = $("overdueOnly").checked;
 
-    const w = window.open("", "_blank");
-    w.document.open();
-    w.document.write(
-      "<!doctype html><html><head><title>"+escapeHtml(subj)+"</title>"+
-      "<style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:18px;margin:0 0 6px}.meta{color:#444;font-size:12px;margin-bottom:16px}pre{white-space:pre-wrap;font-size:12px;line-height:1.35}</style>"+
-      "</head><body>"+
-      "<h1>"+escapeHtml(subj)+"</h1>"+
-      "<div class='meta'>To: "+escapeHtml(to||"—")+"</div>"+
-      "<pre>"+escapeHtml(content)+"</pre>"+
-      "</body></html>"
-    );
-    w.document.close();
-    w.onload = ()=> { w.focus(); w.print(); };
-  });
+    let items = c.milestones.filter(m => !m.completed);
 
-  openModal("Builder Discrepancy Report", body);
-}
+    if (overdueOnly) {
+      items = items.filter(m => m.dueDate && m.dueDate < today);
+    }
 
-/* ---------- Export/Import/Reset ---------- */
-function exportBackup(){
-  const data = JSON.stringify(state, null, 2);
-  const blob = new Blob([data], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = `construction-qa-backup_${stamp}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+    items.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
+    });
 
-function importBackup(e){
-  const file=e.target.files?.[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const parsed=JSON.parse(String(reader.result||""));
-      if(!parsed.library || !Array.isArray(parsed.library.phases)) throw new Error("Missing library");
-      parsed.roster ??= defaultRoster();
-      parsed.roster.approvers ??= [];
-      parsed.projects ??= [];
-      parsed.discrepancies ??= [];
-      state = parsed;
-      selectedProjectId = state.projects[0]?.id || null;
-      saveState();
-      closeModal();
-    } catch(err){
-      alert("Import failed: " + (err.message||err));
-    } finally {
-      e.target.value="";
+    const host = $("redReportBody");
+    host.innerHTML = "";
+
+    if (items.length === 0){
+      host.innerHTML = `<div class="muted">No red tasks 🎉</div>`;
+      return;
+    }
+
+    items.forEach(m => {
+      const isOverdue = m.dueDate && m.dueDate < today;
+      const row = document.createElement("div");
+      row.className = "mrow " + (isOverdue ? "overdue" : "pending");
+      row.innerHTML = `
+        <div class="title">${escapeHtml(m.title)}</div>
+        <div class="small">Due: ${m.dueDate || "—"}${isOverdue ? " • OVERDUE" : ""}</div>
+        ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
+      `;
+      host.appendChild(row);
+    });
+  }
+
+  $("redReportBtn").onclick = () => {
+    buildRedReport();
+    $("dlgRedReport").showModal();
+  };
+  $("closeRedReportBtn").onclick = () => $("dlgRedReport").close();
+  $("overdueOnly").onchange = () => buildRedReport();
+
+  $("copyRedReportBtn").onclick = async () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    const today = isoToday();
+    const overdueOnly = $("overdueOnly").checked;
+
+    let items = c.milestones.filter(m => !m.completed);
+    if (overdueOnly) items = items.filter(m => m.dueDate && m.dueDate < today);
+
+    items.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
+    });
+
+    const lines = items.map(m => `- ${m.title} (Due: ${m.dueDate || "—"})`);
+    const text = `Red Tasks Report — ${c.name}\n${lines.join("\n") || "(none)"}`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Copied to clipboard.");
+    } catch {
+      alert("Copy failed (browser blocked it).");
     }
   };
-  reader.readAsText(file);
-}
 
-function resetAll(){
-  const ok=confirm("This wipes all local data in this browser. Export first. Continue?");
-  if(!ok) return;
-  localStorage.removeItem(LS_KEY);
-  state = { roster: defaultRoster(), library: defaultLibrary(), projects: [], discrepancies: [] };
-  selectedProjectId = null;
-  renderAll();
-}
+  // ----------------- QA Rendering + Actions -----------------
+  function ensureCustomerQASnapshot(c){
+    // If they imported old customers (qa=null), we DO NOT auto-apply template (all new only).
+    // But we can allow manual creation if needed later.
+    if (c.qa && typeof c.qa === "object") return true;
+    return false;
+  }
 
-renderAll();
-<\/script>
+  function qaCounts(c){
+    if (!ensureCustomerQASnapshot(c)) return { total:0, done:0, signTotal:0, signDone:0, openIssues:0 };
 
+    let total=0, done=0;
+    c.qa.phases.forEach(p=>{
+      p.checks.forEach(ch=>{
+        total++;
+        if (c.qa.done?.[p.id]?.[ch.id]) done++;
+      });
+    });
+
+    const signTotal = c.qa.phases.length;
+    let signDone = 0;
+    c.qa.phases.forEach(p=>{
+      const s = c.qa.signoff?.[p.id];
+      if (s?.approverId && s?.date) signDone++;
+    });
+
+    const openIssues = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved").length;
+
+    return { total, done, signTotal, signDone, openIssues };
+  }
+
+  $("qaCopyOpenIssuesBtn").onclick = async () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    if (!ensureCustomerQASnapshot(c)) return alert("This customer was created before QA was added. QA applies to NEW customers only.");
+
+    const open = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved");
+    const lines = open.map(i => {
+      const phaseName = c.qa.phases.find(p=>p.id===i.phaseId)?.name || "—";
+      return `- [${phaseName}] ${i.title}${i.desc ? ` — ${i.desc}` : ""}`;
+    });
+    const text = `Open QA Issues — ${c.name}\n${lines.join("\n") || "(none)"}`;
+
+    try{
+      await navigator.clipboard.writeText(text);
+      alert("Copied to clipboard.");
+    } catch {
+      alert("Copy failed (browser blocked it).");
+    }
+  };
+
+  function renderQA(){
+    const c = getActiveCustomer();
+    const host = $("qaBody");
+    host.innerHTML = "";
+
+    if (!c) return;
+
+    if (!ensureCustomerQASnapshot(c)){
+      host.innerHTML = `
+        <div class="mrow pending">
+          <div class="title">QA not available for this older customer</div>
+          <div class="small">You selected “all new only.” QA phases apply to NEW customers created after QA was added.</div>
+        </div>
+      `;
+      $("qaProgressPill").textContent = `QA: 0/0 (0%)`;
+      $("qaSignoffPill").textContent = `Signed off: 0/0`;
+      return;
+    }
+
+    const counts = qaCounts(c);
+    const pct = counts.total ? Math.round((counts.done/counts.total)*100) : 0;
+    $("qaProgressPill").textContent = `QA: ${counts.done}/${counts.total} (${pct}%)`;
+    $("qaSignoffPill").textContent = `Signed off: ${counts.signDone}/${counts.signTotal} • Open issues: ${counts.openIssues}`;
+
+    c.qa.phases.forEach(phase=>{
+      const card = document.createElement("div");
+      card.className = "phaseCard";
+
+      const phaseTotal = phase.checks.length;
+      const phaseDone = phase.checks.filter(ch => c.qa.done?.[phase.id]?.[ch.id]).length;
+      const phasePct = phaseTotal ? Math.round((phaseDone/phaseTotal)*100) : 0;
+
+      card.innerHTML = `
+        <div class="phaseTop">
+          <div>
+            <div class="phaseName">${escapeHtml(phase.name)}</div>
+            <div class="small">${phaseDone}/${phaseTotal} complete • ${phasePct}%</div>
+          </div>
+          <div class="row wrap" style="justify-content:flex-end">
+            <button class="btn secondary" data-action="addIssue" data-phase="${phase.id}">+ Issue</button>
+            <button class="btn secondary" data-action="markAll" data-phase="${phase.id}">Mark all</button>
+            <button class="btn secondary" data-action="clearAll" data-phase="${phase.id}">Clear</button>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div data-checklist></div>
+
+        <div class="hr"></div>
+
+        <div class="two">
+          <div>
+            <div class="hint">Phase notes</div>
+            <textarea data-notes placeholder="Notes, punch list items, measurements, photos links, etc."></textarea>
+          </div>
+          <div>
+            <div class="hint">Signoff</div>
+            <div class="two">
+              <div>
+                <div class="hint">Approved by</div>
+                <select data-approver></select>
+              </div>
+              <div>
+                <div class="hint">Date</div>
+                <input type="date" data-date />
+              </div>
+            </div>
+            <div class="row wrap" style="justify-content:flex-end; margin-top:10px">
+              <button class="btn secondary" data-action="today" data-phase="${phase.id}">Set today</button>
+              <button class="btn danger" data-action="clearSign" data-phase="${phase.id}">Clear</button>
+            </div>
+            <div class="hint" style="margin-top:8px">Approver list is editable in <b>QA template</b>.</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div>
+          <div class="hint">Issues (phase)</div>
+          <div data-issues style="display:flex; flex-direction:column; gap:8px"></div>
+        </div>
+      `;
+
+      // checklist
+      const list = card.querySelector("[data-checklist]");
+      if (!phase.checks.length){
+        list.innerHTML = `<div class="muted">No checks in this phase template.</div>`;
+      } else {
+        phase.checks.forEach(ch=>{
+          const row = document.createElement("div");
+          row.className = "qaCheck";
+          const checked = !!(c.qa.done?.[phase.id]?.[ch.id]);
+          row.innerHTML = `
+            <input type="checkbox" ${checked ? "checked":""} />
+            <div class="txt">
+              <div class="title" style="font-size:13px">${escapeHtml(ch.text)}</div>
+            </div>
+          `;
+          row.querySelector("input").onchange = (e) => {
+            c.qa.done[phase.id] ??= {};
+            c.qa.done[phase.id][ch.id] = e.target.checked;
+            saveState();
+            renderQA(); // ok to re-render on checkbox clicks
+            renderCustomers();
+          };
+          list.appendChild(row);
+        });
+      }
+
+      // notes (do NOT re-render as you type)
+      const ta = card.querySelector("[data-notes]");
+      ta.value = c.qa.notes?.[phase.id] || "";
+      ta.oninput = () => {
+        c.qa.notes[phase.id] = ta.value;
+        saveState();
+      };
+
+      // approver dropdown
+      const sel = card.querySelector("[data-approver]");
+      sel.innerHTML = "";
+      const opt0 = document.createElement("option");
+      opt0.value = ""; opt0.textContent = "— Select —";
+      sel.appendChild(opt0);
+
+      c.qa.approvers.forEach(a=>{
+        const o = document.createElement("option");
+        o.value = a.id;
+        o.textContent = a.name;
+        sel.appendChild(o);
+      });
+
+      const s = c.qa.signoff?.[phase.id] || {};
+      sel.value = s.approverId || "";
+
+      sel.onchange = () => {
+        c.qa.signoff[phase.id] ??= {};
+        c.qa.signoff[phase.id].approverId = sel.value || "";
+        saveState();
+        renderQA();
+        renderCustomers();
+      };
+
+      // signoff date (no re-render needed)
+      const date = card.querySelector("[data-date]");
+      date.value = s.date || "";
+      date.oninput = () => {
+        c.qa.signoff[phase.id] ??= {};
+        c.qa.signoff[phase.id].date = date.value;
+        saveState();
+      };
+
+      // issues list
+      const issuesHost = card.querySelector("[data-issues]");
+      const issues = (c.qa.issues||[]).filter(i => i.phaseId === phase.id);
+      if (!issues.length){
+        issuesHost.innerHTML = `<div class="muted">No issues logged.</div>`;
+      } else {
+        issues.slice().reverse().forEach(i=>{
+          const row = document.createElement("div");
+          const isResolved = (i.status||"Open") === "Resolved";
+          row.className = "mrow " + (isResolved ? "complete" : "pending");
+          row.style.padding = "10px";
+          row.innerHTML = `
+            <div class="row wrap" style="justify-content:space-between">
+              <div>
+                <div class="title">${escapeHtml(i.title)}</div>
+                <div class="small">${escapeHtml(i.desc||"")}</div>
+              </div>
+              <div class="row wrap">
+                <span class="pill ${isResolved ? "ok":"bad"}">${escapeHtml(i.status||"Open")}</span>
+                <button class="btn secondary" data-toggle>Toggle</button>
+                <button class="btn danger" data-del>Delete</button>
+              </div>
+            </div>
+          `;
+          row.querySelector("[data-toggle]").onclick = () => {
+            i.status = isResolved ? "Open" : "Resolved";
+            saveState();
+            renderQA();
+          };
+          row.querySelector("[data-del]").onclick = () => {
+            if (!confirm("Delete this issue?")) return;
+            c.qa.issues = c.qa.issues.filter(x => x.id !== i.id);
+            saveState();
+            renderQA();
+          };
+          issuesHost.appendChild(row);
+        });
+      }
+
+      // buttons
+      card.querySelectorAll("button[data-action]").forEach(btn=>{
+        btn.onclick = () => {
+          const action = btn.getAttribute("data-action");
+          const phaseId = btn.getAttribute("data-phase");
+          if (action === "markAll"){
+            c.qa.done[phaseId] ??= {};
+            phase.checks.forEach(ch => c.qa.done[phaseId][ch.id] = true);
+            saveState();
+            renderQA();
+          }
+          if (action === "clearAll"){
+            c.qa.done[phaseId] = {};
+            saveState();
+            renderQA();
+          }
+          if (action === "today"){
+            const d = isoToday();
+            c.qa.signoff[phaseId] ??= {};
+            c.qa.signoff[phaseId].date = d;
+            saveState();
+            renderQA();
+          }
+          if (action === "clearSign"){
+            c.qa.signoff[phaseId] = {};
+            saveState();
+            renderQA();
+          }
+          if (action === "addIssue"){
+            const title = prompt("Issue title (short):");
+            if (!title || !title.trim()) return;
+            const desc = prompt("Issue details (optional):") || "";
+            c.qa.issues.push({
+              id: uid("iss"),
+              phaseId,
+              title: title.trim(),
+              desc: desc.trim(),
+              status: "Open",
+              createdAt: new Date().toISOString()
+            });
+            saveState();
+            renderQA();
+          }
+        };
+      });
+
+      host.appendChild(card);
+    });
+  }
+
+  // ----------------- Rendering -----------------
+  function render(){
+    renderStats();
+    renderCustomers();
+    renderRight();
+  }
+
+  function renderStats(){
+    $("statCustomers").textContent = state.customers.length;
+    $("statStartDates").textContent = state.customers.filter(c => !!c.startDate).length;
+
+    const today = isoToday();
+    const overdueCount = state.customers.filter(c =>
+      c.milestones.some(m => !m.completed && m.dueDate && m.dueDate < today)
+    ).length;
+    $("statOverdue").textContent = overdueCount;
+  }
+
+  function renderCustomers(){
+    customerList.innerHTML = "";
+    const q = $("search").value.trim().toLowerCase();
+    const today = isoToday();
+
+    const list = (!q ? state.customers : state.customers.filter(c => {
+      const hay = `${c.name} ${c.phone||""} ${c.email||""} ${c.address||""}`.toLowerCase();
+      return hay.includes(q);
+    }));
+
+    if (list.length === 0){
+      customerList.innerHTML = `<div class="muted">No customers yet. Click <b>+ Add</b>.</div>`;
+      return;
+    }
+
+    list.forEach(c => {
+      const total = c.milestones.length;
+      const done = c.milestones.filter(m => m.completed).length;
+      const overdue = c.milestones.some(m => !m.completed && m.dueDate && m.dueDate < today);
+      const pct = total ? Math.round((done/total)*100) : 0;
+
+      const div = document.createElement("div");
+      div.className = "item" + (c.id === activeCustomerId ? " sel" : "");
+      div.onclick = () => { activeCustomerId = c.id; renderRight(); renderCustomers(); };
+
+      div.innerHTML = `
+        <div class="top">
+          <div style="min-width:0">
+            <div class="name">${escapeHtml(c.name)}</div>
+            <div class="meta">Start: ${c.startDate || "—"}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="pill ${overdue ? "bad" : "ok"}">${overdue ? "Overdue" : "OK"}</span>
+            <div class="meta">${done}/${total}</div>
+          </div>
+        </div>
+        <div class="bar"><div style="width:${pct}%"></div></div>
+      `;
+      customerList.appendChild(div);
+    });
+  }
+
+  function renderHeaderMeta(){
+    const c = getActiveCustomer();
+    if (!c) return;
+    $("custTitle").textContent = c.name;
+    const created = new Date(c.createdAt).toLocaleString();
+    $("custSubtitle").textContent = `Start date: ${c.startDate || "—"} • Added ${created}`;
+  }
+
+  function renderRight(){
+    const c = getActiveCustomer();
+    const has = !!c;
+
+    $("custActions").style.display = has ? "" : "none";
+    $("tabs").style.display = has ? "" : "none";
+
+    $("panelEmpty").style.display = has ? "none" : "";
+    $("panelChecklist").style.display = (has && activeTab === "checklist") ? "" : "none";
+    $("panelDetails").style.display = (has && activeTab === "details") ? "" : "none";
+    $("panelQA").style.display = (has && activeTab === "qa") ? "" : "none";
+
+    document.querySelectorAll("#tabs .tab").forEach(t => {
+      t.classList.toggle("active", t.dataset.tab === activeTab);
+    });
+
+    if (!c){
+      $("custTitle").textContent = "Select a customer";
+      $("custSubtitle").textContent = "Pick a customer on the left, or add a new one.";
+      return;
+    }
+
+    renderHeaderMeta();
+
+    if (activeTab === "details"){
+      bindDetailInputs();
+    } else if (activeTab === "qa"){
+      renderQA();
+    } else {
+      renderMilestones();
+    }
+  }
+
+  function renderMilestones(){
+    const c = getActiveCustomer();
+    if (!c) return;
+    milestoneList.innerHTML = "";
+
+    const total = c.milestones.length;
+    const done = c.milestones.filter(m => m.completed).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+
+    $("progressPill").textContent = `${done}/${total} (${pct}%)`;
+
+    const today = isoToday();
+    const overdueCount = c.milestones.filter(m => !m.completed && m.dueDate && m.dueDate < today).length;
+    const pill = $("overduePill");
+    if (overdueCount > 0){
+      pill.className = "pill bad";
+      pill.textContent = `${overdueCount} overdue`;
+    } else {
+      pill.className = "pill ok";
+      pill.textContent = "No overdue";
+    }
+
+    if (total === 0){
+      milestoneList.innerHTML = `<div class="muted">No milestones yet. Edit the template or add a custom milestone.</div>`;
+      return;
+    }
+
+    [...c.milestones]
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      })
+      .forEach(m => {
+        const isOverdue = !m.completed && m.dueDate && m.dueDate < today;
+
+        const div = document.createElement("div");
+        let statusClass = "pending";
+        if (m.completed) statusClass = "complete";
+        else if (isOverdue) statusClass = "overdue";
+        div.className = "mrow " + statusClass;
+
+        const due = m.dueDate || "—";
+        const doneAt = m.completedAt ? ` • Done: ${new Date(m.completedAt).toLocaleString()}` : "";
+        const overdueTxt = isOverdue ? " • OVERDUE" : "";
+
+        div.innerHTML = `
+          <div class="mhead">
+            <div class="chk ${m.completed ? "on" : ""}" title="${m.completed ? "Mark incomplete" : "Mark complete"}">✓</div>
+            <div style="min-width:0">
+              <div class="title">${escapeHtml(m.title)}</div>
+              <div class="small">Due: ${due}${doneAt}${overdueTxt}</div>
+              ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
+            </div>
+          </div>
+
+          <div class="mlast">
+            <div style="min-width:220px">
+              <div class="hint">Due date</div>
+              <input type="date" value="${m.dueDate || ""}" data-due />
+            </div>
+            <button class="btn secondary" data-notes>Notes</button>
+            <button class="btn danger" data-del>Delete</button>
+          </div>
+        `;
+
+        div.querySelector(".chk").onclick = () => toggleMilestone(c.id, m.id);
+
+        div.querySelector("[data-due]").onchange = (e) => {
+          m.dueDate = e.target.value || "";
+          saveState();
+          renderMilestones();
+          renderCustomers();
+          renderStats();
+        };
+
+        div.querySelector("[data-notes]").onclick = () => {
+          const notes = prompt("Notes (optional):", m.notes || "");
+          if (notes === null) return;
+          m.notes = notes.trim();
+          saveState();
+          renderMilestones();
+        };
+
+        div.querySelector("[data-del]").onclick = () => {
+          if (!confirm("Delete this milestone?")) return;
+          c.milestones = c.milestones.filter(x => x.id !== m.id);
+          saveState();
+          renderMilestones();
+          renderCustomers();
+          renderStats();
+        };
+
+        milestoneList.appendChild(div);
+      });
+
+    renderStats();
+  }
+
+  function renderTemplateEditor(){
+    const host = $("templateList");
+    host.innerHTML = "";
+    if (state.template.length === 0){
+      host.innerHTML = `<div class="muted">Your template is empty. Click <b>+ Add template item</b>.</div>`;
+      return;
+    }
+
+    state.template.forEach(t => {
+      const box = document.createElement("div");
+      box.className = "mrow";
+      box.innerHTML = `
+        <div class="two">
+          <div>
+            <div class="hint">Title</div>
+            <input value="${escapeAttr(t.title || "")}" data-title />
+          </div>
+          <div>
+            <div class="hint">Days before start</div>
+            <input type="number" value="${(t.defaultDaysBeforeStart ?? "")}" data-days placeholder="e.g. 14" />
+          </div>
+        </div>
+        <div>
+          <div class="hint">Notes (optional)</div>
+          <input value="${escapeAttr(t.notes || "")}" data-notes />
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn danger" data-del>Delete</button>
+        </div>
+      `;
+
+      box.querySelector("[data-title]").oninput = (e) => t.title = e.target.value;
+      box.querySelector("[data-notes]").oninput = (e) => t.notes = e.target.value;
+      box.querySelector("[data-days]").oninput = (e) => {
+        const v = e.target.value;
+        t.defaultDaysBeforeStart = (v === "" ? null : Number(v));
+      };
+      box.querySelector("[data-del]").onclick = () => {
+        state.template = state.template.filter(x => x.id !== t.id);
+        renderTemplateEditor();
+      };
+
+      host.appendChild(box);
+    });
+  }
+
+  // ----------------- Utilities -----------------
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
+
+  // Initial render
+  render();
+</script>
 </body>
 </html>
-

@@ -27,9 +27,7 @@
       z-index:10;
     }
     .wrap{max-width:1200px; margin:0 auto;}
-    .topbar{
-      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    }
+    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;}
     h1{font-size:18px; margin:0; letter-spacing:.2px}
     .sub{color:var(--muted); font-size:12px; margin-top:4px}
     .btn{
@@ -42,12 +40,14 @@
       box-shadow:0 8px 18px rgba(0,0,0,.25);
       font-weight:600;
       font-size:13px;
+      user-select:none;
     }
     .btn:hover{transform: translateY(-1px);}
     .btn:active{transform: translateY(0px);}
     .btn.blue{border-color:rgba(47,118,255,.55); box-shadow:0 10px 22px rgba(47,118,255,.12)}
     .btn.ok{border-color:rgba(31,143,74,.55)}
     .btn.bad{border-color:rgba(209,67,67,.55)}
+    .btn.warn{border-color:rgba(212,161,30,.55)}
     .btn.ghost{background:transparent; box-shadow:none}
     .row{display:flex; gap:14px; flex-wrap:wrap; align-items:center}
     .pill{
@@ -60,14 +60,8 @@
     }
 
     main{padding:18px 16px 40px}
-    .grid{
-      display:grid;
-      grid-template-columns: 340px 1fr;
-      gap:16px;
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns: 1fr}
-    }
+    .grid{display:grid; grid-template-columns: 340px 1fr; gap:16px;}
+    @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
     .card{
       background:rgba(18,19,26,.9);
       border:1px solid var(--line);
@@ -80,6 +74,7 @@
       padding:14px 14px 10px;
       border-bottom:1px solid var(--line);
       display:flex; align-items:center; justify-content:space-between;
+      gap:10px; flex-wrap:wrap;
     }
     .card .content{padding:14px}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
@@ -94,9 +89,7 @@
       font-size:13px;
     }
     textarea{min-height:84px; resize:vertical}
-    .list{
-      display:flex; flex-direction:column; gap:10px;
-    }
+    .list{display:flex; flex-direction:column; gap:10px;}
     .item{
       border:1px solid var(--line);
       background:rgba(15,17,25,.75);
@@ -128,9 +121,7 @@
       background:rgba(15,17,25,.55);
       margin-bottom:12px;
     }
-    .phaseTop{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    }
+    .phaseTop{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
     .phaseName{font-weight:800}
     .small{font-size:12px; color:var(--muted)}
     .checks{margin-top:10px; display:flex; flex-direction:column; gap:8px}
@@ -144,9 +135,17 @@
     .checkRow .txt{flex:1; font-size:13px}
     .twoCol{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
     @media (max-width:680px){.twoCol{grid-template-columns:1fr}}
-    .rightActions{display:flex; gap:10px; flex-wrap:wrap}
+    .rightActions{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
     .mutedNote{color:var(--muted); font-size:12px; line-height:1.35}
     .danger{color:#ff9a9a}
+    .tag{display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:rgba(15,17,25,.55); font-size:11px; color:var(--muted)}
+    .tag.open{border-color:rgba(209,67,67,.6)}
+    .tag.progress{border-color:rgba(212,161,30,.6)}
+    .tag.resolved{border-color:rgba(31,143,74,.6)}
+    .table{width:100%; border-collapse:collapse; font-size:12px}
+    .table th,.table td{border-bottom:1px solid var(--line); padding:8px 6px; vertical-align:top}
+    .table th{color:var(--muted); font-weight:700; text-align:left}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   </style>
 </head>
 <body>
@@ -154,7 +153,7 @@
   <div class="wrap topbar">
     <div>
       <h1>Construction QA Tracker (Internal)</h1>
-      <div class="sub">Editable milestones + sub-inspections • Auto-saves in browser • Export/Import JSON backup</div>
+      <div class="sub">Editable milestones + signoff roster • Discrepancy reports • Export/Import JSON backup</div>
     </div>
     <div class="row">
       <span class="pill" id="statPill">0 projects</span>
@@ -197,7 +196,7 @@
         <div class="list" id="projectList"></div>
         <div class="hr"></div>
         <div class="mutedNote">
-          Tip: Export a backup weekly. Import restores everything (projects + milestone library).
+          Tip: Export a backup weekly. Import restores everything (projects + library + discrepancies + roster).
         </div>
       </div>
     </section>
@@ -207,7 +206,9 @@
       <h2>
         <span id="detailTitle">Select a project</span>
         <div class="rightActions">
-          <button class="btn" id="btnEditLibrary">Edit Milestone Library</button>
+          <button class="btn warn" id="btnDiscrepancies">Discrepancy Reports</button>
+          <button class="btn" id="btnEditLibrary">Edit Library</button>
+          <button class="btn" id="btnEditRoster">Edit QA Roster</button>
           <button class="btn bad" id="btnDeleteProject" title="Delete selected project">Delete Project</button>
         </div>
       </h2>
@@ -222,7 +223,7 @@
 
 <!-- Modal -->
 <div id="modal" style="position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:50; padding:18px;">
-  <div class="card" style="width:min(860px, 100%); max-height:86vh; overflow:auto;">
+  <div class="card" style="width:min(980px, 100%); max-height:86vh; overflow:auto;">
     <h2>
       <span id="modalTitle">Modal</span>
       <button class="btn ghost" id="btnCloseModal">Close</button>
@@ -232,16 +233,15 @@
 </div>
 
 <script>
-/** -----------------------------
- *  Data model (editable)
- *  -----------------------------
- *  state = {
- *    library: { phases: [ {id, name, checks:[{id, text}]} ] },
- *    projects: [ {id, name, createdAt, updatedAt, currentPhaseId, qa:{phaseId:{checkId:true}}, signoff:{phaseId:{name,date}}, notes:{phaseId:""}} ]
- *  }
+/**
+ * state = {
+ *   roster: { approvers: [ {id, name} ] },
+ *   library: { phases: [ {id, name, checks:[{id, text}]} ] },
+ *   projects: [ {id, name, createdAt, updatedAt, currentPhaseId, qa:{phaseId:{checkId:true}}, signoff:{phaseId:{approverId,date}}, notes:{phaseId:""}, builder:{name,email}} ],
+ *   discrepancies: [ {id, projectId, phaseId, createdAt, updatedAt, title, description, severity, status, assignedTo, dueDate, photoLinks, reportedBy, builderEmailOverride} ]
+ * }
  */
-const LS_KEY = "construction_qa_tracker_v1";
-
+const LS_KEY = "construction_qa_tracker_v2";
 const uid = () => Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
 
 const defaultLibrary = () => ({
@@ -274,696 +274,4 @@ const defaultLibrary = () => ({
       {id: uid(), text: "Valves labeled / routing verified"},
       {id: uid(), text: "Bonding plan confirmed (as applicable)"},
     ]},
-    { id: uid(), name: "Backfill Inspection", checks: [
-      {id: uid(), text: "Backfill material acceptable (no debris)"},
-      {id: uid(), text: "Compaction steps followed"},
-      {id: uid(), text: "Rough grade drainage direction confirmed"},
-    ]},
-    { id: uid(), name: "Equipment Set Inspection", checks: [
-      {id: uid(), text: "Pad level & service clearances confirmed"},
-      {id: uid(), text: "Plumbing tidy / unions accessible"},
-      {id: uid(), text: "Electrical/bonding completed (as required)"},
-    ]},
-    { id: uid(), name: "Deck Framing Inspection", checks: [
-      {id: uid(), text: "Forms set to elevations / slope verified"},
-      {id: uid(), text: "Reinforcement placed per spec"},
-      {id: uid(), text: "Expansion joints planned / placed"},
-    ]},
-    { id: uid(), name: "Kool Deck inspection", checks: [
-      {id: uid(), text: "Surface prep complete"},
-      {id: uid(), text: "Finish uniform / no weak spots"},
-      {id: uid(), text: "Edges clean / transitions neat"},
-    ]},
-  ]
-});
-
-function loadState(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return { library: defaultLibrary(), projects: [] };
-    const parsed = JSON.parse(raw);
-    // Minimal migration safety:
-    parsed.library ??= defaultLibrary();
-    parsed.projects ??= [];
-    return parsed;
-  } catch(e){
-    return { library: defaultLibrary(), projects: [] };
-  }
-}
-function saveState(){
-  state._lastSaved = Date.now();
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-  renderAll();
-}
-
-let state = loadState();
-let selectedProjectId = null;
-
-// UI elements
-const elProjectList = document.getElementById("projectList");
-const elDetailTitle = document.getElementById("detailTitle");
-const elDetailPane  = document.getElementById("detailPane");
-const elStatPill    = document.getElementById("statPill");
-
-const elSearch = document.getElementById("projectSearch");
-const elSort   = document.getElementById("projectSort");
-
-document.getElementById("btnAddProject").addEventListener("click", () => openAddProject());
-document.getElementById("btnDeleteProject").addEventListener("click", () => deleteSelectedProject());
-document.getElementById("btnEditLibrary").addEventListener("click", () => openLibraryEditor());
-
-document.getElementById("btnExport").addEventListener("click", () => exportBackup());
-document.getElementById("fileImport").addEventListener("change", (e) => importBackup(e));
-document.getElementById("btnReset").addEventListener("click", () => resetAll());
-
-elSearch.addEventListener("input", () => renderProjects());
-elSort.addEventListener("change", () => renderProjects());
-
-// Modal controls
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modalTitle");
-const modalBody = document.getElementById("modalBody");
-document.getElementById("btnCloseModal").addEventListener("click", closeModal);
-modal.addEventListener("click", (e) => { if(e.target === modal) closeModal(); });
-
-function openModal(title, bodyNode){
-  modalTitle.textContent = title;
-  modalBody.innerHTML = "";
-  modalBody.appendChild(bodyNode);
-  modal.style.display = "flex";
-}
-function closeModal(){ modal.style.display = "none"; }
-
-function renderAll(){
-  renderProjects();
-  renderDetail();
-  elStatPill.textContent = `${state.projects.length} project${state.projects.length===1?"":"s"}`;
-}
-
-function projectProgress(p){
-  const phases = state.library.phases;
-  if(!phases.length) return {done:0,total:0, pct:0};
-  // Count checks done across all phases
-  let total = 0, done = 0;
-  for(const ph of phases){
-    for(const c of ph.checks){
-      total++;
-      if(p.qa?.[ph.id]?.[c.id]) done++;
-    }
-  }
-  const pct = total ? Math.round((done/total)*100) : 0;
-  return {done,total,pct};
-}
-
-function renderProjects(){
-  const q = elSearch.value.trim().toLowerCase();
-  const sort = elSort.value;
-
-  let projects = [...state.projects];
-
-  if(q){
-    projects = projects.filter(p => (p.name||"").toLowerCase().includes(q));
-  }
-
-  projects.sort((a,b) => {
-    if(sort==="updated_desc") return (b.updatedAt||0) - (a.updatedAt||0);
-    if(sort==="name_asc") return (a.name||"").localeCompare(b.name||"");
-    if(sort==="name_desc") return (b.name||"").localeCompare(a.name||"");
-    if(sort==="created_desc") return (b.createdAt||0) - (a.createdAt||0);
-    if(sort==="created_asc") return (a.createdAt||0) - (b.createdAt||0);
-    return 0;
-  });
-
-  elProjectList.innerHTML = "";
-  if(!projects.length){
-    const empty = document.createElement("div");
-    empty.className = "mutedNote";
-    empty.textContent = q ? "No projects match your search." : "No projects yet. Click “+ Add” to start.";
-    elProjectList.appendChild(empty);
-    return;
-  }
-
-  for(const p of projects){
-    const item = document.createElement("div");
-    item.className = "item" + (p.id===selectedProjectId ? " active" : "");
-    item.addEventListener("click", () => { selectedProjectId = p.id; renderAll(); });
-
-    const title = document.createElement("div");
-    title.className = "title";
-    title.textContent = p.name || "Untitled Project";
-
-    const meta = document.createElement("div");
-    meta.className = "meta";
-
-    const ph = state.library.phases.find(x => x.id === p.currentPhaseId) || state.library.phases[0];
-    const prog = projectProgress(p);
-
-    meta.appendChild(chip(`Phase`, ph ? ph.name : "—"));
-    meta.appendChild(chip(`QA`, `${prog.pct}%`));
-    meta.appendChild(chip(`Updated`, new Date(p.updatedAt||p.createdAt||Date.now()).toLocaleDateString()));
-
-    item.appendChild(title);
-    item.appendChild(meta);
-
-    elProjectList.appendChild(item);
-  }
-}
-
-function chip(k,v){
-  const c = document.createElement("span");
-  c.className = "chip";
-  c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
-  return c;
-}
-
-function renderDetail(){
-  const p = state.projects.find(x => x.id === selectedProjectId);
-  if(!p){
-    elDetailTitle.textContent = "Select a project";
-    elDetailPane.innerHTML = `<div class="mutedNote">Choose a project on the left. Or click “+ Add”.</div>`;
-    return;
-  }
-
-  elDetailTitle.textContent = p.name || "Untitled Project";
-
-  // Ensure structures exist
-  p.qa ??= {};
-  p.signoff ??= {};
-  p.notes ??= {};
-  if(!p.currentPhaseId && state.library.phases[0]) p.currentPhaseId = state.library.phases[0].id;
-
-  const container = document.createElement("div");
-
-  // Top controls
-  const top = document.createElement("div");
-  top.className = "twoCol";
-
-  const left = document.createElement("div");
-  left.innerHTML = `
-    <label>Current Phase</label>
-    <select id="selPhase"></select>
-  `;
-
-  const right = document.createElement("div");
-  right.innerHTML = `
-    <label>Rename Project</label>
-    <input id="inpProjectName" value="${escapeAttr(p.name||"")}" />
-  `;
-
-  top.appendChild(left);
-  top.appendChild(right);
-  container.appendChild(top);
-
-  const selPhase = left.querySelector("#selPhase");
-  for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
-    if(ph.id === p.currentPhaseId) opt.selected = true;
-    selPhase.appendChild(opt);
-  }
-
-  selPhase.addEventListener("change", () => {
-    p.currentPhaseId = selPhase.value;
-    touch(p);
-    saveState();
-  });
-
-  const inpName = right.querySelector("#inpProjectName");
-  inpName.addEventListener("input", () => {
-    p.name = inpName.value;
-    touch(p);
-    saveState();
-  });
-
-  container.appendChild(divHr());
-
-  // Render phases as collapsible-ish boxes (simple, always visible)
-  for(const ph of state.library.phases){
-    const box = document.createElement("div");
-    box.className = "phaseBox";
-
-    const prog = phaseProgress(p, ph);
-
-    const head = document.createElement("div");
-    head.className = "phaseTop";
-    head.innerHTML = `
-      <div>
-        <div class="phaseName">${escapeHtml(ph.name)}</div>
-        <div class="small">${prog.done}/${prog.total} checks complete • ${prog.pct}%</div>
-      </div>
-      <div class="row">
-        <button class="btn ghost" data-action="markAll" data-ph="${ph.id}">Mark all</button>
-        <button class="btn ghost" data-action="clearAll" data-ph="${ph.id}">Clear</button>
-      </div>
-    `;
-    box.appendChild(head);
-
-    // Checks
-    const checks = document.createElement("div");
-    checks.className = "checks";
-
-    for(const c of ph.checks){
-      const row = document.createElement("div");
-      row.className = "checkRow";
-      const checked = !!(p.qa?.[ph.id]?.[c.id]);
-      row.innerHTML = `
-        <input type="checkbox" ${checked ? "checked":""} data-ph="${ph.id}" data-ch="${c.id}">
-        <div class="txt">${escapeHtml(c.text)}</div>
-      `;
-      const cb = row.querySelector("input[type='checkbox']");
-      cb.addEventListener("change", () => {
-        p.qa[ph.id] ??= {};
-        p.qa[ph.id][c.id] = cb.checked;
-        touch(p);
-        saveState();
-      });
-      checks.appendChild(row);
-    }
-    box.appendChild(checks);
-
-    // Notes + signoff
-    const bottom = document.createElement("div");
-    bottom.style.marginTop = "10px";
-    bottom.className = "twoCol";
-
-    const notes = document.createElement("div");
-    notes.innerHTML = `
-      <label>Notes (Phase)</label>
-      <textarea data-ph="${ph.id}" placeholder="Crew notes, issues, rework required, etc.">${escapeHtml(p.notes?.[ph.id] || "")}</textarea>
-    `;
-    const ta = notes.querySelector("textarea");
-    ta.addEventListener("input", () => {
-      p.notes[ph.id] = ta.value;
-      touch(p);
-      saveState();
-    });
-
-    const sign = document.createElement("div");
-    const s = p.signoff?.[ph.id] || {};
-    sign.innerHTML = `
-      <label>QA Signoff</label>
-      <div class="twoCol">
-        <input data-ph="${ph.id}" data-field="name" placeholder="Signed by (name)" value="${escapeAttr(s.name||"")}" />
-        <input data-ph="${ph.id}" data-field="date" type="date" value="${escapeAttr(s.date||"")}" />
-      </div>
-      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn ok" data-action="setToday" data-ph="${ph.id}">Set date = Today</button>
-        <button class="btn bad" data-action="clearSign" data-ph="${ph.id}">Clear signoff</button>
-      </div>
-    `;
-    sign.querySelectorAll("input").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const field = inp.getAttribute("data-field");
-        p.signoff[phid] ??= {};
-        p.signoff[phid][field] = inp.value;
-        touch(p);
-        saveState();
-      });
-    });
-
-    bottom.appendChild(notes);
-    bottom.appendChild(sign);
-    box.appendChild(bottom);
-
-    container.appendChild(box);
-  }
-
-  // Button handlers inside detail
-  container.querySelectorAll("button[data-action]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const action = btn.getAttribute("data-action");
-      const phid = btn.getAttribute("data-ph");
-      const ph = state.library.phases.find(x => x.id === phid);
-      if(!ph) return;
-
-      if(action==="markAll"){
-        p.qa[phid] ??= {};
-        for(const c of ph.checks) p.qa[phid][c.id] = true;
-        touch(p); saveState();
-      }
-      if(action==="clearAll"){
-        p.qa[phid] = {};
-        touch(p); saveState();
-      }
-      if(action==="setToday"){
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth()+1).padStart(2,"0");
-        const dd = String(today.getDate()).padStart(2,"0");
-        p.signoff[phid] ??= {};
-        p.signoff[phid].date = `${yyyy}-${mm}-${dd}`;
-        touch(p); saveState();
-      }
-      if(action==="clearSign"){
-        p.signoff[phid] = {};
-        touch(p); saveState();
-      }
-    });
-  });
-
-  elDetailPane.innerHTML = "";
-  elDetailPane.appendChild(container);
-}
-
-function phaseProgress(p, ph){
-  const total = ph.checks.length;
-  let done = 0;
-  for(const c of ph.checks){
-    if(p.qa?.[ph.id]?.[c.id]) done++;
-  }
-  const pct = total ? Math.round((done/total)*100) : 0;
-  return {done,total,pct};
-}
-
-function divHr(){
-  const d = document.createElement("div");
-  d.className = "hr";
-  return d;
-}
-
-function touch(p){
-  const now = Date.now();
-  p.updatedAt = now;
-}
-
-function openAddProject(){
-  const body = document.createElement("div");
-
-  const nameWrap = document.createElement("div");
-  nameWrap.innerHTML = `
-    <label>Project / Customer Name</label>
-    <input id="newProjectName" placeholder="e.g., Smith Pool - Richmond Hill" />
-  `;
-  body.appendChild(nameWrap);
-
-  body.appendChild(divHr());
-
-  const startWrap = document.createElement("div");
-  startWrap.innerHTML = `
-    <label>Starting Phase</label>
-    <select id="newProjectPhase"></select>
-    <div class="mutedNote" style="margin-top:8px;">You can change the phase later. QA checks are per-phase.</div>
-  `;
-  const sel = startWrap.querySelector("#newProjectPhase");
-  for(const ph of state.library.phases){
-    const opt = document.createElement("option");
-    opt.value = ph.id;
-    opt.textContent = ph.name;
-    sel.appendChild(opt);
-  }
-  body.appendChild(startWrap);
-
-  body.appendChild(divHr());
-
-  const actions = document.createElement("div");
-  actions.style.display = "flex";
-  actions.style.gap = "10px";
-  actions.style.flexWrap = "wrap";
-  actions.innerHTML = `
-    <button class="btn ok" id="btnCreate">Create Project</button>
-    <button class="btn ghost" id="btnCancel">Cancel</button>
-  `;
-  body.appendChild(actions);
-
-  actions.querySelector("#btnCancel").addEventListener("click", closeModal);
-  actions.querySelector("#btnCreate").addEventListener("click", () => {
-    const name = body.querySelector("#newProjectName").value.trim();
-    const phaseId = body.querySelector("#newProjectPhase").value;
-
-    const now = Date.now();
-    const proj = {
-      id: uid(),
-      name: name || "Untitled Project",
-      createdAt: now,
-      updatedAt: now,
-      currentPhaseId: phaseId,
-      qa: {},
-      signoff: {},
-      notes: {}
-    };
-    state.projects.unshift(proj);
-    selectedProjectId = proj.id;
-    saveState();
-    closeModal();
-  });
-
-  openModal("Add Project", body);
-}
-
-function deleteSelectedProject(){
-  const p = state.projects.find(x => x.id === selectedProjectId);
-  if(!p) return;
-
-  const body = document.createElement("div");
-  body.innerHTML = `
-    <div class="danger" style="font-weight:800;">Delete this project?</div>
-    <div class="mutedNote" style="margin-top:8px;">
-      This will permanently remove <b>${escapeHtml(p.name)}</b> from this browser storage.
-      Export a backup first if you might need it later.
-    </div>
-    <div class="hr"></div>
-  `;
-  const actions = document.createElement("div");
-  actions.style.display="flex"; actions.style.gap="10px"; actions.style.flexWrap="wrap";
-  actions.innerHTML = `
-    <button class="btn bad" id="confirmDel">Yes, delete</button>
-    <button class="btn ghost" id="cancelDel">Cancel</button>
-  `;
-  body.appendChild(actions);
-
-  actions.querySelector("#cancelDel").addEventListener("click", closeModal);
-  actions.querySelector("#confirmDel").addEventListener("click", () => {
-    state.projects = state.projects.filter(x => x.id !== selectedProjectId);
-    selectedProjectId = state.projects[0]?.id || null;
-    saveState();
-    closeModal();
-  });
-
-  openModal("Confirm Delete", body);
-}
-
-function openLibraryEditor(){
-  const body = document.createElement("div");
-
-  const header = document.createElement("div");
-  header.className = "mutedNote";
-  header.textContent = "Edit phases and sub-inspections here. Changes apply to all projects. Existing project QA data is kept when possible.";
-  body.appendChild(header);
-
-  body.appendChild(divHr());
-
-  const list = document.createElement("div");
-  list.className = "list";
-  body.appendChild(list);
-
-  function draw(){
-    list.innerHTML = "";
-
-    // Add phase button
-    const addPhase = document.createElement("button");
-    addPhase.className = "btn ok";
-    addPhase.textContent = "+ Add Phase";
-    addPhase.addEventListener("click", () => {
-      state.library.phases.push({ id: uid(), name: "New Phase", checks: [] });
-      saveStateNoRender();
-      draw();
-    });
-    list.appendChild(addPhase);
-
-    for(const ph of state.library.phases){
-      const box = document.createElement("div");
-      box.className = "phaseBox";
-
-      const top = document.createElement("div");
-      top.className = "phaseTop";
-      top.innerHTML = `
-        <div style="flex:1; min-width:240px;">
-          <label>Phase Name</label>
-          <input data-ph="${ph.id}" class="phName" value="${escapeAttr(ph.name)}" />
-        </div>
-        <div class="row">
-          <button class="btn ghost" data-action="addCheck" data-ph="${ph.id}">+ Add Check</button>
-          <button class="btn bad" data-action="delPhase" data-ph="${ph.id}">Delete Phase</button>
-        </div>
-      `;
-      box.appendChild(top);
-
-      const checks = document.createElement("div");
-      checks.className = "checks";
-      if(!ph.checks.length){
-        const m = document.createElement("div");
-        m.className = "mutedNote";
-        m.textContent = "No checks yet. Click “+ Add Check”.";
-        checks.appendChild(m);
-      } else {
-        for(const c of ph.checks){
-          const row = document.createElement("div");
-          row.className = "checkRow";
-          row.innerHTML = `
-            <div style="flex:1">
-              <input data-ph="${ph.id}" data-ch="${c.id}" class="chText" value="${escapeAttr(c.text)}" />
-            </div>
-            <button class="btn bad" data-action="delCheck" data-ph="${ph.id}" data-ch="${c.id}">Delete</button>
-          `;
-          checks.appendChild(row);
-        }
-      }
-      box.appendChild(checks);
-
-      list.appendChild(box);
-    }
-
-    // Wire inputs + buttons
-    list.querySelectorAll("input.phName").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const ph = state.library.phases.find(x => x.id === phid);
-        if(!ph) return;
-        ph.name = inp.value;
-        saveStateNoRender(); // keep modal responsive
-        renderProjects(); // update list labels
-        renderDetail();
-      });
-    });
-
-    list.querySelectorAll("input.chText").forEach(inp => {
-      inp.addEventListener("input", () => {
-        const phid = inp.getAttribute("data-ph");
-        const chid = inp.getAttribute("data-ch");
-        const ph = state.library.phases.find(x => x.id === phid);
-        const ch = ph?.checks.find(x => x.id === chid);
-        if(!ch) return;
-        ch.text = inp.value;
-        saveStateNoRender();
-        renderDetail();
-      });
-    });
-
-    list.querySelectorAll("button[data-action]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const action = btn.getAttribute("data-action");
-        const phid = btn.getAttribute("data-ph");
-        const ph = state.library.phases.find(x => x.id === phid);
-        if(!ph) return;
-
-        if(action === "addCheck"){
-          ph.checks.push({ id: uid(), text: "New Check" });
-          saveStateNoRender();
-          draw();
-          renderDetail();
-        }
-
-        if(action === "delCheck"){
-          const chid = btn.getAttribute("data-ch");
-          ph.checks = ph.checks.filter(x => x.id !== chid);
-          // remove QA marks tied to deleted check
-          for(const p of state.projects){
-            if(p.qa?.[phid]) delete p.qa[phid][chid];
-          }
-          saveStateNoRender();
-          draw();
-          renderDetail();
-        }
-
-        if(action === "delPhase"){
-          // Remove phase + associated QA blocks
-          state.library.phases = state.library.phases.filter(x => x.id !== phid);
-          for(const p of state.projects){
-            if(p.qa) delete p.qa[phid];
-            if(p.signoff) delete p.signoff[phid];
-            if(p.notes) delete p.notes[phid];
-            // If current phase was deleted, set to first available
-            if(p.currentPhaseId === phid){
-              p.currentPhaseId = state.library.phases[0]?.id || null;
-            }
-          }
-          saveStateNoRender();
-          draw();
-          renderAll();
-        }
-      });
-    });
-  }
-
-  function saveStateNoRender(){
-    state._lastSaved = Date.now();
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-  }
-
-  draw();
-
-  body.appendChild(divHr());
-  const footer = document.createElement("div");
-  footer.className = "mutedNote";
-  footer.textContent = "After editing the library, export a backup so you always have a copy of your latest template + projects.";
-  body.appendChild(footer);
-
-  openModal("Edit Milestone Library (Phases + Checks)", body);
-}
-
-function exportBackup(){
-  const data = JSON.stringify(state, null, 2);
-  const blob = new Blob([data], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = `construction-qa-backup_${stamp}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function importBackup(e){
-  const file = e.target.files?.[0];
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const parsed = JSON.parse(String(reader.result || ""));
-      if(!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-      if(!parsed.library || !Array.isArray(parsed.library.phases)) throw new Error("Missing milestone library");
-      if(!Array.isArray(parsed.projects)) parsed.projects = [];
-      state = parsed;
-      selectedProjectId = state.projects[0]?.id || null;
-      saveState();
-      closeModal();
-    } catch(err){
-      alert("Import failed: " + (err.message || err));
-    } finally {
-      e.target.value = "";
-    }
-  };
-  reader.readAsText(file);
-}
-
-function resetAll(){
-  const ok = confirm("This will wipe all local data for this tracker in this browser. Export a backup first. Continue?");
-  if(!ok) return;
-  localStorage.removeItem(LS_KEY);
-  state = { library: defaultLibrary(), projects: [] };
-  selectedProjectId = null;
-  renderAll();
-}
-
-function escapeHtml(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
-
-// Init selection
-if(!selectedProjectId && state.projects[0]) selectedProjectId = state.projects[0].id;
-renderAll();
-</script>
-</body>
-</html>
+    { id: uid(), name: "Ba

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pool Milestones + QA Tracker (Single-File)</title>
+  <title>Pool Milestones + QA (Stable Single-File)</title>
   <style>
     :root{
       --bg:#0b0c10; --card:#12131a; --muted:#a7adbb; --text:#f3f5ff;
@@ -44,10 +44,7 @@
     .pill.bad{color:#ffb7b7; border-color:#542626; background:#2a1414}
     .pill.ok{color:#b7ffd1; border-color:#275a3a; background:#112015}
     .list{display:flex; flex-direction:column; gap:8px; max-height:62vh; overflow:auto; padding-right:6px}
-    .item{
-      border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:10px;
-      cursor:pointer;
-    }
+    .item{border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:10px; cursor:pointer;}
     .item.sel{border-color:#3b4673; background:#10152a}
     .item .top{display:flex; justify-content:space-between; gap:10px}
     .item .name{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -61,7 +58,6 @@
       border:1px solid var(--line); border-radius:16px; padding:10px; background:#0f1018;
       display:flex; flex-direction:column; gap:10px;
     }
-    /* Status colors */
     .mrow.pending { border-color: #6b2b2b; background: #1f1010; }
     .mrow.overdue { border-color: #b23b3b; background: #2a1212; }
     .mrow.complete { border-color: #2e7d4f; background: #0f2217; }
@@ -76,7 +72,7 @@
     @media (max-width: 720px){ .two{grid-template-columns:1fr} }
     dialog{
       border:1px solid var(--line); border-radius:16px; background:var(--card); color:var(--text);
-      width:min(920px, 96vw);
+      width:min(980px, 96vw);
     }
     dialog::backdrop{background:rgba(0,0,0,.6)}
     .dlg-hd{padding:14px; border-bottom:1px solid var(--line)}
@@ -87,27 +83,19 @@
     .hr{height:1px; background:var(--line); margin:10px 0}
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
 
-    /* QA UI */
-    .phaseCard{border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:10px; margin-bottom:10px}
-    .phaseTop{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:flex-start}
-    .phaseName{font-weight:900}
-    .qaCheck{display:flex; gap:10px; align-items:flex-start; border:1px dashed rgba(35,38,58,.9); border-radius:12px; padding:8px 10px; background:#0e1018}
+    /* QA */
+    .phaseCard{border:1px solid var(--line); background:#0f1018; border-radius:16px; padding:12px; margin-bottom:10px}
+    .phaseTitle{font-weight:900; font-size:15px} /* BOLD phase */
+    .qaCheck{display:flex; gap:10px; align-items:flex-start; border:1px dashed rgba(35,38,58,.9); border-radius:12px; padding:8px 10px; background:#0e1018; margin-top:8px}
     .qaCheck input[type="checkbox"]{width:auto; margin-top:2px; transform:scale(1.12)}
     .qaCheck .txt{flex:1}
-    .dragRow{display:flex; gap:10px; align-items:center}
-    .grab{
-      width:34px; text-align:center; user-select:none;
-      cursor:grab; border:1px solid var(--line); background:#0e1018;
-      border-radius:10px; padding:8px 0; color:var(--muted); font-weight:800;
-    }
-    .grab:active{cursor:grabbing}
-    .dropHint{outline:2px dashed #3b4673; outline-offset:6px}
   </style>
 </head>
+
 <body>
 <header>
-  <h1>Pool Milestones + QA Tracker</h1>
-  <div class="sub">Milestones + QA phases for in-house tracking (saved locally in your browser). Export/Import for backups.</div>
+  <h1>Pool Milestones + QA (Stable)</h1>
+  <div class="sub">In-house tracker. QA Library updates auto-apply to ALL customers. Saved locally in your browser.</div>
 </header>
 
 <div class="wrap">
@@ -135,8 +123,7 @@
 
         <div class="row wrap" style="margin-top:10px">
           <button class="btn secondary" id="editTemplateBtn">Milestone template</button>
-          <button class="btn secondary" id="editQATemplateBtn">QA template</button>
-          <button class="btn secondary" id="refreshAllBtn" title="Merge latest templates into ALL customers (safe: adds new items, keeps existing)">Refresh ALL</button>
+          <button class="btn secondary" id="editQALibraryBtn">QA library</button>
           <button class="btn secondary" id="exportBtn">Export</button>
           <button class="btn secondary" id="importBtn">Import</button>
           <button class="btn secondary" id="resetBtn" title="Clears local data">Reset</button>
@@ -157,7 +144,6 @@
             <div class="hint" id="custSubtitle">Pick a customer on the left, or add a new one.</div>
           </div>
           <div class="row wrap" id="custActions" style="display:none">
-            <button class="btn secondary" id="refreshOneBtn" title="Merge latest templates into this customer (safe)">Refresh this customer</button>
             <button class="btn secondary" id="recomputeBtn" title="Recalculate due dates based on milestone template days-before-start">Recompute due dates</button>
             <button class="btn danger" id="deleteCustomerBtn">Delete</button>
             <button class="btn secondary" id="redReportBtn">Red tasks</button>
@@ -167,7 +153,7 @@
         <div class="tabs" id="tabs" style="display:none">
           <div class="tab active" data-tab="checklist">Checklist</div>
           <div class="tab" data-tab="details">Customer details</div>
-          <div class="tab" data-tab="qa">QA Phases</div>
+          <div class="tab" data-tab="qa">QA</div>
         </div>
       </div>
 
@@ -199,7 +185,7 @@
               <div class="hd"><div style="font-weight:800">Construction start</div><div class="hint">Set the start date for due date calculations</div></div>
               <div class="bd" style="display:flex; flex-direction:column; gap:10px">
                 <label class="hint">Start date</label><input id="dStartDate" type="date" />
-                <div class="hint">After setting a start date, click <b>Recompute due dates</b> to auto-fill due dates from the template.</div>
+                <div class="hint">After setting a start date, click <b>Recompute due dates</b>.</div>
               </div>
             </div>
           </div>
@@ -211,7 +197,11 @@
               <span class="pill" id="qaProgressPill">QA: 0/0 (0%)</span>
               <span class="pill" id="qaSignoffPill">Signed off: 0/0</span>
             </div>
-            <button class="btn secondary" id="qaCopyOpenIssuesBtn">Copy open issues</button>
+            <div class="row wrap">
+              <button class="btn secondary" id="qaBuilderReportBtn">Builder report</button>
+              <button class="btn secondary" id="qaCopyOpenIssuesBtn">Copy open issues</button>
+              <button class="btn secondary" id="qaAddIssueBtn">+ Issue</button>
+            </div>
           </div>
           <div id="qaBody"></div>
         </div>
@@ -224,11 +214,11 @@
   </div>
 </div>
 
-<!-- ADD CUSTOMER DIALOG -->
+<!-- ADD CUSTOMER -->
 <dialog id="dlgCustomer">
   <div class="dlg-hd">
     <div style="font-weight:900">Add customer</div>
-    <div class="hint">Creates milestones + QA phases from the templates.</div>
+    <div class="hint">Creates a new checklist from the milestone template. QA uses the shared QA library automatically.</div>
   </div>
   <div class="dlg-bd">
     <div class="two">
@@ -236,22 +226,10 @@
         <label class="hint">Name *</label>
         <input id="cName" placeholder="Customer name" />
       </div>
-      <div>
-        <label class="hint">Phone</label>
-        <input id="cPhone" placeholder="(xxx) xxx-xxxx" />
-      </div>
-      <div>
-        <label class="hint">Email</label>
-        <input id="cEmail" placeholder="name@email.com" />
-      </div>
-      <div style="grid-column:1 / -1">
-        <label class="hint">Address</label>
-        <input id="cAddress" placeholder="Jobsite address" />
-      </div>
-      <div>
-        <label class="hint">Construction start date</label>
-        <input id="cStartDate" type="date" />
-      </div>
+      <div><label class="hint">Phone</label><input id="cPhone" /></div>
+      <div><label class="hint">Email</label><input id="cEmail" /></div>
+      <div style="grid-column:1 / -1"><label class="hint">Address</label><input id="cAddress" /></div>
+      <div><label class="hint">Construction start date</label><input id="cStartDate" type="date" /></div>
     </div>
   </div>
   <div class="dlg-ft">
@@ -260,39 +238,39 @@
   </div>
 </dialog>
 
-<!-- MILESTONE TEMPLATE DIALOG -->
+<!-- MILESTONE TEMPLATE -->
 <dialog id="dlgTemplate">
   <div class="dlg-hd">
     <div style="font-weight:900">Milestone template</div>
-    <div class="hint">Defaults applied to new customers. “Days before start” is used to calculate due dates.</div>
+    <div class="hint">Used for new customers. If you want changes to apply to existing customers, click “Apply template to all customers” below.</div>
   </div>
   <div class="dlg-bd">
     <div class="row wrap" style="justify-content:space-between">
       <button class="btn" id="tAdd">+ Add template item</button>
-      <div class="hint">Refresh buttons merge changes into existing customers safely.</div>
+      <button class="btn secondary" id="tApplyAll">Apply template to all customers</button>
     </div>
     <div class="hr"></div>
     <div id="templateList" style="display:flex; flex-direction:column; gap:10px; max-height:52vh; overflow:auto; padding-right:6px"></div>
   </div>
   <div class="dlg-ft">
-    <button class="btn secondary" id="tCancel">Cancel</button>
+    <button class="btn secondary" id="tCancel">Close</button>
     <button class="btn" id="tSave">Save template</button>
   </div>
 </dialog>
 
-<!-- QA TEMPLATE DIALOG -->
-<dialog id="dlgQATemplate">
+<!-- QA LIBRARY -->
+<dialog id="dlgQALib">
   <div class="dlg-hd">
-    <div style="font-weight:900">QA template (Phases + checks + approver dropdown)</div>
-    <div class="hint">Drag the handle (≡) to reorder phases/checks. Refresh buttons merge changes into existing customers.</div>
+    <div style="font-weight:900">QA library (Auto-applies to ALL customers)</div>
+    <div class="hint">No drag/reorder. Add/rename phases & checks. Changes show up everywhere immediately after Save.</div>
   </div>
   <div class="dlg-bd">
     <div class="two" style="align-items:start">
       <div>
         <div class="row wrap" style="justify-content:space-between">
           <div>
-            <div style="font-weight:800">Phases</div>
-            <div class="hint">Drag to reorder. Add checks inside each phase.</div>
+            <div style="font-weight:800">Phases & checks</div>
+            <div class="hint">Each phase will show BOLD in the QA tab.</div>
           </div>
           <button class="btn" id="qaAddPhaseBtn">+ Add phase</button>
         </div>
@@ -304,7 +282,7 @@
         <div class="row wrap" style="justify-content:space-between">
           <div>
             <div style="font-weight:800">Approver dropdown list</div>
-            <div class="hint">This controls “Approved by” options.</div>
+            <div class="hint">Used for “Approved by”.</div>
           </div>
           <button class="btn" id="qaAddApproverBtn">+ Add name</button>
         </div>
@@ -314,19 +292,19 @@
     </div>
   </div>
   <div class="dlg-ft">
-    <button class="btn secondary" id="qaTCancel">Cancel</button>
-    <button class="btn" id="qaTSave">Save QA template</button>
+    <button class="btn secondary" id="qaLibClose">Close</button>
+    <button class="btn" id="qaLibSave">Save QA library</button>
   </div>
 </dialog>
 
-<!-- IMPORT DIALOG -->
+<!-- IMPORT -->
 <dialog id="dlgImport">
   <div class="dlg-hd">
     <div style="font-weight:900">Import backup JSON</div>
     <div class="hint">Paste the JSON you exported earlier.</div>
   </div>
   <div class="dlg-bd">
-    <textarea id="importText" class="mono" placeholder='{"template":[...],"qaTemplate":{...},"customers":[...]}'></textarea>
+    <textarea id="importText" class="mono" placeholder='{"milestoneTemplate":[...],"qaLibrary":{...},"customers":[...]}'></textarea>
   </div>
   <div class="dlg-ft">
     <button class="btn secondary" id="iCancel">Cancel</button>
@@ -334,7 +312,7 @@
   </div>
 </dialog>
 
-<!-- RED TASKS REPORT DIALOG -->
+<!-- RED TASKS REPORT -->
 <dialog id="dlgRedReport">
   <div class="dlg-hd">
     <div style="font-weight:900">Red Tasks Report</div>
@@ -357,10 +335,11 @@
 </dialog>
 
 <script>
-  // ----------------- Data Model -----------------
-  const LS_KEY = "pool_milestones_qa_tracker_singlefile_v1";
-
+  // ----------------- Storage -----------------
+  const LS_KEY = "pool_milestones_qa_stable_v1";
+  const $ = (id) => document.getElementById(id);
   const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+  const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
   const isoToday = () => {
     const d = new Date();
@@ -369,7 +348,6 @@
     const dd = String(d.getDate()).padStart(2,"0");
     return `${yyyy}-${mm}-${dd}`;
   };
-
   const addDays = (dateISO, days) => {
     const d = new Date(dateISO + "T00:00:00");
     d.setDate(d.getDate() + days);
@@ -379,9 +357,8 @@
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const clone = (obj) => JSON.parse(JSON.stringify(obj));
-
-  const DEFAULT_TEMPLATE = [
+  // ----------------- Defaults -----------------
+  const DEFAULT_MILESTONE_TEMPLATE = [
     { id: uid("t"), title: "Financing clear-to-start received", notes: "", defaultDaysBeforeStart: 30 },
     { id: uid("t"), title: "Signed contract + scope of work finalized", notes: "", defaultDaysBeforeStart: 30 },
     { id: uid("t"), title: "Initial deposit collected", notes: "", defaultDaysBeforeStart: 30 },
@@ -393,77 +370,74 @@
     { id: uid("t"), title: "Materials / options selections finalized", notes: "", defaultDaysBeforeStart: 14 },
   ];
 
-  const DEFAULT_QA_TEMPLATE = {
-    approvers: [
-      { id: uid("a"), name: "Warren" },
-      { id: uid("a"), name: "Superintendent" },
-      { id: uid("a"), name: "Builder Rep" },
-    ],
+  // QA LIBRARY is shared globally across all customers
+  const DEFAULT_QA_LIBRARY = {
+    approvers: ["Warren", "Superintendent", "Builder Rep"],
     phases: [
-      { id: uid("p"), name: "Pre Construction", checks: [
-        { id: uid("q"), text: "Scope verified / signed contract confirmed" },
-        { id: uid("q"), text: "Utility locate complete" },
-        { id: uid("q"), text: "Pre-build meeting complete" },
+      { id: uid("p"), name:"Pre Construction", checks:[
+        { id: uid("q"), text:"Scope verified / signed contract confirmed" },
+        { id: uid("q"), text:"Utility locate complete" },
+        { id: uid("q"), text:"Pre-build meeting complete" },
       ]},
-      { id: uid("p"), name: "Excavation", checks: [
-        { id: uid("q"), text: "Layout / setbacks confirmed" },
-        { id: uid("q"), text: "Depths verified (laser)" },
-        { id: uid("q"), text: "Steps / shelves positioned correctly" },
+      { id: uid("p"), name:"Excavation", checks:[
+        { id: uid("q"), text:"Layout / setbacks confirmed" },
+        { id: uid("q"), text:"Depths verified (laser)" },
+        { id: uid("q"), text:"Steps / shelves positioned correctly" },
       ]},
-      { id: uid("p"), name: "Shell/Wall Standing", checks: [
-        { id: uid("q"), text: "Walls plumb / alignment verified" },
-        { id: uid("q"), text: "Penetrations / niches secured" },
+      { id: uid("p"), name:"Shell/Wall Standing", checks:[
+        { id: uid("q"), text:"Walls plumb / alignment verified" },
+        { id: uid("q"), text:"Penetrations / niches secured" },
       ]},
-      { id: uid("p"), name: "Liner Hang", checks: [
-        { id: uid("q"), text: "Liner inspected (no defects)" },
-        { id: uid("q"), text: "Vacuum set; seams positioned correctly" },
+      { id: uid("p"), name:"Liner Hang", checks:[
+        { id: uid("q"), text:"Liner inspected (no defects)" },
+        { id: uid("q"), text:"Vac set; seams positioned correctly" },
       ]},
-      { id: uid("p"), name: "Plumbing Inspection", checks: [
-        { id: uid("q"), text: "Pressure test completed & recorded" },
-        { id: uid("q"), text: "Routing verified / valves labeled" },
+      { id: uid("p"), name:"Plumbing Inspection", checks:[
+        { id: uid("q"), text:"Pressure test completed & recorded" },
+        { id: uid("q"), text:"Routing verified / valves labeled" },
       ]},
-      { id: uid("p"), name: "Backfill Inspection", checks: [
-        { id: uid("q"), text: "Backfill material acceptable (no debris)" },
-        { id: uid("q"), text: "Compaction steps followed" },
+      { id: uid("p"), name:"Backfill Inspection", checks:[
+        { id: uid("q"), text:"Backfill material acceptable (no debris)" },
+        { id: uid("q"), text:"Compaction steps followed" },
       ]},
-      { id: uid("p"), name: "Equipment Set Inspection", checks: [
-        { id: uid("q"), text: "Pad level & clearances confirmed" },
-        { id: uid("q"), text: "Electrical/bonding complete (as required)" },
+      { id: uid("p"), name:"Equipment Set Inspection", checks:[
+        { id: uid("q"), text:"Pad level & clearances confirmed" },
+        { id: uid("q"), text:"Electrical/bonding complete (as required)" },
       ]},
-      { id: uid("p"), name: "Deck Framing Inspection", checks: [
-        { id: uid("q"), text: "Forms elevations / slope verified" },
-        { id: uid("q"), text: "Reinforcement placed per spec" },
+      { id: uid("p"), name:"Deck Framing Inspection", checks:[
+        { id: uid("q"), text:"Forms elevations / slope verified" },
+        { id: uid("q"), text:"Reinforcement placed per spec" },
       ]},
-      { id: uid("p"), name: "Kool Deck inspection", checks: [
-        { id: uid("q"), text: "Surface prep complete" },
-        { id: uid("q"), text: "Finish uniform; edges clean" },
+      { id: uid("p"), name:"Kool Deck inspection", checks:[
+        { id: uid("q"), text:"Surface prep complete" },
+        { id: uid("q"), text:"Finish uniform; edges clean" },
       ]},
     ]
-  };
-
-  const migrateState = (parsed) => {
-    if (!parsed || typeof parsed !== "object") {
-      return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
-    }
-    if (!Array.isArray(parsed.template)) parsed.template = DEFAULT_TEMPLATE;
-    if (!parsed.qaTemplate || !Array.isArray(parsed.qaTemplate.phases) || !Array.isArray(parsed.qaTemplate.approvers)) {
-      parsed.qaTemplate = DEFAULT_QA_TEMPLATE;
-    }
-    if (!Array.isArray(parsed.customers)) parsed.customers = [];
-    parsed.customers.forEach(c => {
-      c.milestones ??= [];
-      c.qa ??= null;
-    });
-    return parsed;
   };
 
   const loadState = () => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
-      return migrateState(JSON.parse(raw));
+      if (!raw) return { milestoneTemplate: DEFAULT_MILESTONE_TEMPLATE, qaLibrary: DEFAULT_QA_LIBRARY, customers: [] };
+      const parsed = JSON.parse(raw);
+
+      // Migration / guards
+      parsed.milestoneTemplate ??= DEFAULT_MILESTONE_TEMPLATE;
+      parsed.qaLibrary ??= DEFAULT_QA_LIBRARY;
+      parsed.customers ??= [];
+
+      parsed.customers.forEach(c=>{
+        c.milestones ??= [];
+        c.qa ??= { done:{}, notes:{}, signoff:{}, issues:[] };
+        c.qa.done ??= {};
+        c.qa.notes ??= {};
+        c.qa.signoff ??= {};
+        c.qa.issues ??= [];
+      });
+
+      return parsed;
     } catch {
-      return { template: DEFAULT_TEMPLATE, qaTemplate: DEFAULT_QA_TEMPLATE, customers: [] };
+      return { milestoneTemplate: DEFAULT_MILESTONE_TEMPLATE, qaLibrary: DEFAULT_QA_LIBRARY, customers: [] };
     }
   };
 
@@ -473,18 +447,92 @@
   let activeCustomerId = state.customers[0]?.id ?? null;
   let activeTab = "checklist";
 
-  // ----------------- DOM -----------------
-  const $ = (id) => document.getElementById(id);
+  // ----------------- Helpers -----------------
+  const escapeHtml = (str) => String(str ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  const escapeAttr = (str) => escapeHtml(str).replaceAll("\n"," ");
 
-  const customerList = $("customerList");
-  const milestoneList = $("milestoneList");
+  const getActiveCustomer = () => state.customers.find(c => c.id === activeCustomerId) || null;
 
-  // Left controls
-  $("addCustomerBtn").onclick = () => openCustomerDialog();
-  $("editTemplateBtn").onclick = () => openTemplateDialog();
-  $("editQATemplateBtn").onclick = () => openQATemplateDialog();
-  $("exportBtn").onclick = () => exportJSON();
+  // Apply milestone template to a customer (merge-forward; keep customs)
+  function applyMilestoneTemplateToCustomer(c){
+    if (!c) return;
+
+    // ensure tplId exists
+    c.milestones.forEach(m => { if (!("tplId" in m)) m.tplId = null; });
+
+    const byTplId = new Map(c.milestones.filter(m=>m.tplId).map(m => [m.tplId, m]));
+    const byTitle = new Map(c.milestones.map(m => [m.title, m]));
+
+    const merged = [];
+    state.milestoneTemplate.forEach(t=>{
+      let m = byTplId.get(t.id) || byTitle.get(t.title);
+      if (!m){
+        const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
+          ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
+          : "";
+        m = {
+          id: uid("m"),
+          tplId: t.id,
+          title: t.title,
+          notes: t.notes || "",
+          dueDate,
+          completed:false,
+          completedAt:""
+        };
+      } else {
+        m.tplId = t.id;
+        m.title = t.title;
+        if (!m.notes) m.notes = t.notes || "";
+      }
+      merged.push(m);
+    });
+
+    // keep customer-specific milestones not in template
+    c.milestones.forEach(m=>{
+      if (!merged.some(x => x.id === m.id)) merged.push(m);
+    });
+
+    c.milestones = merged;
+  }
+
+  function recomputeDueDates(c){
+    if (!c?.startDate) return;
+    const mapByTplId = new Map(state.milestoneTemplate.map(t => [t.id, t.defaultDaysBeforeStart]));
+    const mapByTitle = new Map(state.milestoneTemplate.map(t => [t.title, t.defaultDaysBeforeStart]));
+
+    c.milestones.forEach(m=>{
+      const days = (m.tplId && mapByTplId.has(m.tplId)) ? mapByTplId.get(m.tplId) : mapByTitle.get(m.title);
+      if (typeof days === "number") m.dueDate = addDays(c.startDate, -Number(days));
+    });
+  }
+
+  // QA is auto-updating because we render from qaLibrary.
+  // We only need to ensure customer.qa maps exist; already guarded.
+
+  // ----------------- Buttons: Left -----------------
+  $("addCustomerBtn").onclick = () => {
+    $("cName").value = "";
+    $("cPhone").value = "";
+    $("cEmail").value = "";
+    $("cAddress").value = "";
+    $("cStartDate").value = "";
+    $("dlgCustomer").showModal();
+  };
+
+  $("exportBtn").onclick = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pool-qa-backup_${isoToday()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   $("importBtn").onclick = () => $("dlgImport").showModal();
+
   $("resetBtn").onclick = () => {
     if (!confirm("Reset local data? This clears customers + templates in this browser.")) return;
     localStorage.removeItem(LS_KEY);
@@ -493,26 +541,70 @@
     render();
   };
 
-  $("refreshAllBtn").onclick = () => {
-    if (!confirm("Refresh ALL customers from current milestone + QA templates? (Safe: adds new items, keeps history)")) return;
-    state.customers.forEach(c => {
-      refreshCustomerMilestonesFromTemplate(c);
-      refreshCustomerQAFromTemplate(c);
-    });
-    saveState();
-    render();
-    alert("Refreshed ALL customers.");
-  };
-
   $("search").addEventListener("input", () => renderCustomers());
 
-  // Import dialog
+  // ----------------- Customer dialog -----------------
+  $("cCancel").onclick = () => $("dlgCustomer").close();
+  $("cCreate").onclick = () => {
+    const name = $("cName").value.trim();
+    if (!name) return alert("Name is required.");
+
+    const c = {
+      id: uid("c"),
+      name,
+      phone: $("cPhone").value.trim(),
+      email: $("cEmail").value.trim(),
+      address: $("cAddress").value.trim(),
+      startDate: $("cStartDate").value || "",
+      createdAt: new Date().toISOString(),
+      milestones: [],
+      qa: { done:{}, notes:{}, signoff:{}, issues:[] }
+    };
+
+    // build milestones from template
+    c.milestones = state.milestoneTemplate.map(t=>{
+      const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
+        ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
+        : "";
+      return {
+        id: uid("m"),
+        tplId: t.id,
+        title: t.title,
+        notes: t.notes || "",
+        dueDate,
+        completed:false,
+        completedAt:""
+      };
+    });
+
+    state.customers.unshift(c);
+    activeCustomerId = c.id;
+    saveState();
+    $("dlgCustomer").close();
+    render();
+  };
+
+  // ----------------- Import dialog -----------------
   $("iCancel").onclick = () => $("dlgImport").close();
   $("iDo").onclick = () => {
     const raw = $("importText").value.trim();
     if (!raw) return alert("Paste JSON first.");
-    try {
-      state = migrateState(JSON.parse(raw));
+    try{
+      const parsed = JSON.parse(raw);
+      state = parsed;
+      // re-guard/migrate
+      state.milestoneTemplate ??= DEFAULT_MILESTONE_TEMPLATE;
+      state.qaLibrary ??= DEFAULT_QA_LIBRARY;
+      state.customers ??= [];
+      state.customers.forEach(c=>{
+        c.milestones ??= [];
+        c.qa ??= { done:{}, notes:{}, signoff:{}, issues:[] };
+        c.qa.done ??= {};
+        c.qa.notes ??= {};
+        c.qa.signoff ??= {};
+        c.qa.issues ??= [];
+      });
+
       activeCustomerId = state.customers[0]?.id ?? null;
       saveState();
       $("dlgImport").close();
@@ -522,7 +614,7 @@
     }
   };
 
-  // Right controls
+  // ----------------- Right controls -----------------
   $("deleteCustomerBtn").onclick = () => {
     const c = getActiveCustomer();
     if (!c) return;
@@ -533,21 +625,10 @@
     render();
   };
 
-  $("refreshOneBtn").onclick = () => {
-    const c = getActiveCustomer();
-    if (!c) return;
-    refreshCustomerMilestonesFromTemplate(c);
-    refreshCustomerQAFromTemplate(c);
-    saveState();
-    renderRight();
-    renderCustomers();
-    alert("Refreshed this customer.");
-  };
-
   $("recomputeBtn").onclick = () => {
     const c = getActiveCustomer();
     if (!c?.startDate) return alert("Set a start date first (Details tab).");
-    recomputeDueDates(c.id);
+    recomputeDueDates(c);
     saveState();
     render();
   };
@@ -557,514 +638,257 @@
     if (!c) return;
     const title = prompt("Add a custom milestone (for this customer):");
     if (!title || !title.trim()) return;
+
     c.milestones.unshift({
       id: uid("m"),
       tplId: null,
       title: title.trim(),
       notes: "",
       dueDate: "",
-      completed: false,
-      completedAt: ""
+      completed:false,
+      completedAt:""
     });
     saveState();
     render();
   };
 
   // Tabs
-  document.querySelectorAll("#tabs .tab").forEach(tab => {
+  document.querySelectorAll("#tabs .tab").forEach(tab=>{
     tab.onclick = () => {
       activeTab = tab.dataset.tab;
       renderRight();
     };
   });
 
-  // Detail inputs
-  const bindDetailInputs = () => {
-    const c = getActiveCustomer();
-    if (!c) return;
-
-    const map = [
-      ["dName", "name"],
-      ["dPhone", "phone"],
-      ["dEmail", "email"],
-      ["dAddress", "address"],
-      ["dStartDate", "startDate"],
-    ];
-
-    map.forEach(([id, key]) => {
-      const el = $(id);
-      el.value = c[key] || "";
-      el.oninput = () => {
-        c[key] = el.value || "";
-        saveState();
-        renderCustomers();
-        renderHeaderMeta();
-        renderStats();
-      };
-    });
-  };
-
-  // ----------------- Dialogs -----------------
-  function openCustomerDialog(){
-    $("cName").value = "";
-    $("cPhone").value = "";
-    $("cEmail").value = "";
-    $("cAddress").value = "";
-    $("cStartDate").value = "";
-    $("dlgCustomer").showModal();
-  }
-  $("cCancel").onclick = () => $("dlgCustomer").close();
-  $("cCreate").onclick = () => {
-    const name = $("cName").value.trim();
-    if (!name) return alert("Name is required.");
-    const phone = $("cPhone").value.trim();
-    const email = $("cEmail").value.trim();
-    const address = $("cAddress").value.trim();
-    const startDate = $("cStartDate").value;
-
-    const milestones = state.template.map(t => {
-      const dueDate = startDate && typeof t.defaultDaysBeforeStart === "number"
-        ? addDays(startDate, -Number(t.defaultDaysBeforeStart))
-        : "";
-      return {
-        id: uid("m"),
-        tplId: t.id,               // link milestone to template id for refresh merges
-        title: t.title,
-        notes: t.notes || "",
-        dueDate,
-        completed: false,
-        completedAt: ""
-      };
-    });
-
-    const qaSnap = {
-      approvers: clone(state.qaTemplate.approvers),
-      phases: clone(state.qaTemplate.phases),
-      done: {},
-      notes: {},
-      signoff: {},
-      issues: []
-    };
-
-    const customer = {
-      id: uid("c"),
-      name,
-      phone, email, address,
-      startDate: startDate || "",
-      createdAt: new Date().toISOString(),
-      milestones,
-      tags: [],
-      qa: qaSnap
-    };
-
-    state.customers.unshift(customer);
-    activeCustomerId = customer.id;
-    saveState();
-    $("dlgCustomer").close();
-    render();
-  };
-
-  function openTemplateDialog(){
-    renderTemplateEditor();
+  // ----------------- Milestone Template dialog -----------------
+  $("editTemplateBtn").onclick = () => {
+    renderMilestoneTemplateEditor();
     $("dlgTemplate").showModal();
-  }
+  };
   $("tCancel").onclick = () => $("dlgTemplate").close();
   $("tAdd").onclick = () => {
-    state.template.unshift({ id: uid("t"), title: "New milestone", notes:"", defaultDaysBeforeStart: 7 });
-    renderTemplateEditor();
+    state.milestoneTemplate.unshift({ id: uid("t"), title:"New milestone", notes:"", defaultDaysBeforeStart: 7 });
+    renderMilestoneTemplateEditor();
+  };
+  $("tApplyAll").onclick = () => {
+    if (!confirm("Apply milestone template to ALL customers? (Safe: adds new template items, keeps customer custom items)")) return;
+    state.customers.forEach(c => applyMilestoneTemplateToCustomer(c));
+    saveState();
+    render();
+    alert("Applied milestone template to ALL customers.");
   };
   $("tSave").onclick = () => {
-    state.template = state.template
-      .map(t => ({
+    state.milestoneTemplate = state.milestoneTemplate
+      .map(t=>({
         ...t,
-        title: (t.title || "").trim(),
-        notes: (t.notes || "").trim()
+        title:(t.title||"").trim(),
+        notes:(t.notes||"").trim(),
+        defaultDaysBeforeStart: (t.defaultDaysBeforeStart === "" || t.defaultDaysBeforeStart === null || Number.isNaN(Number(t.defaultDaysBeforeStart)))
+          ? null
+          : Number(t.defaultDaysBeforeStart)
       }))
-      .filter(t => t.title.length > 0);
+      .filter(t=>t.title.length > 0);
 
     saveState();
-    $("dlgTemplate").close();
-    render();
+    renderMilestoneTemplateEditor();
+    alert("Milestone template saved.");
   };
 
-  // -------- QA Template Editor (drag reorder) --------
-  function openQATemplateDialog(){
-    renderQATemplateEditor();
-    $("dlgQATemplate").showModal();
-  }
-  $("qaTCancel").onclick = () => $("dlgQATemplate").close();
-  $("qaTSave").onclick = () => {
-    state.qaTemplate.approvers = state.qaTemplate.approvers
-      .map(a => ({...a, name:(a.name||"").trim()}))
-      .filter(a => a.name.length > 0);
+  function renderMilestoneTemplateEditor(){
+    const host = $("templateList");
+    host.innerHTML = "";
+    if (!state.milestoneTemplate.length){
+      host.innerHTML = `<div class="muted">Template is empty. Add items.</div>`;
+      return;
+    }
 
-    state.qaTemplate.phases = state.qaTemplate.phases
+    state.milestoneTemplate.forEach(t=>{
+      const box = document.createElement("div");
+      box.className = "mrow";
+      box.innerHTML = `
+        <div class="two">
+          <div>
+            <div class="hint">Title</div>
+            <input data-title value="${escapeAttr(t.title||"")}" />
+          </div>
+          <div>
+            <div class="hint">Days before start</div>
+            <input data-days type="number" value="${t.defaultDaysBeforeStart ?? ""}" placeholder="e.g. 14" />
+          </div>
+        </div>
+        <div>
+          <div class="hint">Notes (optional)</div>
+          <input data-notes value="${escapeAttr(t.notes||"")}" />
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn danger" data-del>Delete</button>
+        </div>
+      `;
+
+      const titleEl = box.querySelector("[data-title]");
+      const notesEl = box.querySelector("[data-notes]");
+      const daysEl  = box.querySelector("[data-days]");
+
+      // IMPORTANT: no re-render on input (prevents the “one character then jump” bug)
+      titleEl.addEventListener("input", () => { t.title = titleEl.value; });
+      notesEl.addEventListener("input", () => { t.notes = notesEl.value; });
+      daysEl.addEventListener("input",  () => { t.defaultDaysBeforeStart = daysEl.value; });
+
+      box.querySelector("[data-del]").onclick = () => {
+        state.milestoneTemplate = state.milestoneTemplate.filter(x => x.id !== t.id);
+        renderMilestoneTemplateEditor();
+      };
+
+      host.appendChild(box);
+    });
+  }
+
+  // ----------------- QA Library dialog -----------------
+  $("editQALibraryBtn").onclick = () => {
+    renderQALibraryEditor();
+    $("dlgQALib").showModal();
+  };
+  $("qaLibClose").onclick = () => $("dlgQALib").close();
+
+  $("qaAddApproverBtn").onclick = () => {
+    state.qaLibrary.approvers.push("New approver");
+    renderQALibraryEditor();
+  };
+  $("qaAddPhaseBtn").onclick = () => {
+    state.qaLibrary.phases.push({ id: uid("p"), name:"New phase", checks:[] });
+    renderQALibraryEditor();
+  };
+
+  $("qaLibSave").onclick = () => {
+    // sanitize
+    state.qaLibrary.approvers = (state.qaLibrary.approvers||[])
+      .map(n => String(n||"").trim())
+      .filter(n => n.length > 0);
+
+    state.qaLibrary.phases = (state.qaLibrary.phases||[])
       .map(p => ({
         ...p,
-        name:(p.name||"").trim(),
+        name: String(p.name||"").trim(),
         checks: (p.checks||[])
-          .map(ch => ({...ch, text:(ch.text||"").trim()}))
+          .map(ch => ({...ch, text:String(ch.text||"").trim()}))
           .filter(ch => ch.text.length > 0)
       }))
       .filter(p => p.name.length > 0);
 
     saveState();
-    $("dlgQATemplate").close();
-    render();
+    render(); // QA auto-updates for all customers because they read shared library
+    alert("QA library saved (auto-applies to ALL customers).");
   };
 
-  $("qaAddApproverBtn").onclick = () => {
-    state.qaTemplate.approvers.push({ id: uid("a"), name: "New approver" });
-    renderQATemplateEditor();
-  };
-
-  $("qaAddPhaseBtn").onclick = () => {
-    state.qaTemplate.phases.push({ id: uid("p"), name: "New phase", checks: [] });
-    renderQATemplateEditor();
-  };
-
-  function makeDraggableList(container, items, onReorder){
-    let dragIndex = null;
-
-    container.querySelectorAll("[data-draggable]").forEach((el, idx) => {
-      el.setAttribute("draggable", "true");
-
-      el.ondragstart = (e) => {
-        dragIndex = idx;
-        e.dataTransfer.effectAllowed = "move";
-        try { e.dataTransfer.setData("text/plain", String(idx)); } catch {}
-      };
-
-      el.ondragover = (e) => {
-        e.preventDefault();
-        el.classList.add("dropHint");
-      };
-      el.ondragleave = () => el.classList.remove("dropHint");
-      el.ondrop = (e) => {
-        e.preventDefault();
-        el.classList.remove("dropHint");
-        const from = dragIndex;
-        const to = idx;
-        if (from === null || from === to) return;
-        const moved = items.splice(from, 1)[0];
-        items.splice(to, 0, moved);
-        dragIndex = null;
-        onReorder();
-      };
-      el.ondragend = () => { dragIndex = null; el.classList.remove("dropHint"); };
-    });
-  }
-
-  function renderQATemplateEditor(){
+  function renderQALibraryEditor(){
     const phaseHost = $("qaPhaseEditor");
     const apprHost = $("qaApproverEditor");
     phaseHost.innerHTML = "";
     apprHost.innerHTML = "";
 
     // Approvers
-    if (!state.qaTemplate.approvers.length){
+    if (!state.qaLibrary.approvers.length){
       apprHost.innerHTML = `<div class="muted">No approvers yet. Add a name.</div>`;
     } else {
-      state.qaTemplate.approvers.forEach(a => {
+      state.qaLibrary.approvers.forEach((name, idx)=>{
         const row = document.createElement("div");
         row.className = "mrow";
         row.innerHTML = `
           <div class="two">
             <div>
               <div class="hint">Name</div>
-              <input value="${escapeAttr(a.name)}" data-name />
+              <input data-name value="${escapeAttr(name)}" />
             </div>
             <div class="row" style="justify-content:flex-end; align-items:flex-end">
               <button class="btn danger" data-del>Delete</button>
             </div>
           </div>
         `;
-        row.querySelector("[data-name]").oninput = (e) => { a.name = e.target.value; saveState(); };
+        const inp = row.querySelector("[data-name]");
+        inp.addEventListener("input", ()=> { state.qaLibrary.approvers[idx] = inp.value; });
         row.querySelector("[data-del]").onclick = () => {
-          state.qaTemplate.approvers = state.qaTemplate.approvers.filter(x => x.id !== a.id);
-          renderQATemplateEditor();
+          state.qaLibrary.approvers.splice(idx,1);
+          renderQALibraryEditor();
         };
         apprHost.appendChild(row);
       });
     }
 
-    // Phases + checks
-    if (!state.qaTemplate.phases.length){
+    // Phases
+    if (!state.qaLibrary.phases.length){
       phaseHost.innerHTML = `<div class="muted">No phases yet. Add a phase.</div>`;
       return;
     }
 
-    state.qaTemplate.phases.forEach((p) => {
+    state.qaLibrary.phases.forEach((p, pIdx)=>{
       const card = document.createElement("div");
       card.className = "mrow";
-      card.setAttribute("data-draggable", "1");
       card.innerHTML = `
-        <div class="dragRow">
-          <div class="grab" title="Drag to reorder">≡</div>
-          <div style="flex:1">
-            <div class="hint">Phase name</div>
-            <input value="${escapeAttr(p.name)}" data-pname />
-          </div>
-          <button class="btn danger" data-delphase>Delete</button>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="row wrap" style="justify-content:space-between">
+        <div class="two">
           <div>
-            <div style="font-weight:800">Checks</div>
-            <div class="hint">Drag to reorder checks in this phase.</div>
+            <div class="hint">Phase name</div>
+            <input data-pname value="${escapeAttr(p.name||"")}" />
           </div>
-          <button class="btn secondary" data-addcheck>+ Add check</button>
+          <div class="row" style="justify-content:flex-end; align-items:flex-end">
+            <button class="btn secondary" data-addcheck>+ Add check</button>
+            <button class="btn danger" data-delphase>Delete phase</button>
+          </div>
         </div>
-
-        <div data-checks style="display:flex; flex-direction:column; gap:10px; margin-top:10px"></div>
+        <div class="hr"></div>
+        <div data-checks style="display:flex; flex-direction:column; gap:10px"></div>
       `;
 
-      card.querySelector("[data-pname]").oninput = (e) => { p.name = e.target.value; saveState(); };
+      const pname = card.querySelector("[data-pname]");
+      pname.addEventListener("input", ()=> { p.name = pname.value; });
+
       card.querySelector("[data-delphase]").onclick = () => {
-        if (!confirm("Delete this phase from the template?")) return;
-        state.qaTemplate.phases = state.qaTemplate.phases.filter(x => x.id !== p.id);
-        renderQATemplateEditor();
+        if (!confirm("Delete this phase from the QA library?")) return;
+        state.qaLibrary.phases.splice(pIdx,1);
+        renderQALibraryEditor();
       };
+
       card.querySelector("[data-addcheck]").onclick = () => {
-        p.checks.push({ id: uid("q"), text: "New QA check" });
-        renderQATemplateEditor();
+        p.checks.push({ id: uid("q"), text:"New QA check" });
+        renderQALibraryEditor();
       };
 
       const checksHost = card.querySelector("[data-checks]");
       if (!p.checks.length){
         checksHost.innerHTML = `<div class="muted">No checks yet. Add a check.</div>`;
       } else {
-        p.checks.forEach((ch) => {
+        p.checks.forEach((ch, cIdx)=>{
           const row = document.createElement("div");
           row.className = "mrow";
           row.style.padding = "10px";
-          row.setAttribute("data-draggable", "1");
           row.innerHTML = `
-            <div class="dragRow">
-              <div class="grab" title="Drag to reorder">≡</div>
-              <div style="flex:1">
+            <div class="two">
+              <div>
                 <div class="hint">Check text</div>
-                <input value="${escapeAttr(ch.text)}" data-ctext />
+                <input data-ctext value="${escapeAttr(ch.text||"")}" />
               </div>
-              <button class="btn danger" data-del>Delete</button>
+              <div class="row" style="justify-content:flex-end; align-items:flex-end">
+                <button class="btn danger" data-del>Delete</button>
+              </div>
             </div>
           `;
-          row.querySelector("[data-ctext]").oninput = (e) => { ch.text = e.target.value; saveState(); };
+          const ctext = row.querySelector("[data-ctext]");
+          ctext.addEventListener("input", ()=> { ch.text = ctext.value; });
+
           row.querySelector("[data-del]").onclick = () => {
-            p.checks = p.checks.filter(x => x.id !== ch.id);
-            renderQATemplateEditor();
+            p.checks.splice(cIdx,1);
+            renderQALibraryEditor();
           };
+
           checksHost.appendChild(row);
         });
-        makeDraggableList(checksHost, p.checks, () => renderQATemplateEditor());
       }
 
       phaseHost.appendChild(card);
     });
-
-    makeDraggableList(phaseHost, state.qaTemplate.phases, () => renderQATemplateEditor());
   }
 
-  // ----------------- Refresh (Milestones + QA) -----------------
-  function refreshCustomerMilestonesFromTemplate(c){
-    if (!c) return;
-
-    // Ensure tplId exists on template milestones in customer. Older data may not have it.
-    c.milestones.forEach(m => { if (!("tplId" in m)) m.tplId = null; });
-
-    // Build maps
-    const byTplId = new Map(c.milestones.filter(m=>m.tplId).map(m => [m.tplId, m]));
-    const byTitle = new Map(c.milestones.map(m => [m.title, m]));
-
-    const newList = [];
-
-    // Template order first
-    state.template.forEach(t => {
-      let existing = byTplId.get(t.id) || byTitle.get(t.title);
-
-      if (!existing){
-        const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
-          ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
-          : "";
-        existing = {
-          id: uid("m"),
-          tplId: t.id,
-          title: t.title,
-          notes: t.notes || "",
-          dueDate,
-          completed: false,
-          completedAt: ""
-        };
-      } else {
-        // keep history but update tplId + title/notes
-        existing.tplId = t.id;
-        existing.title = t.title;
-        // only overwrite notes if existing notes empty (safer)
-        if (!existing.notes) existing.notes = t.notes || "";
-      }
-
-      newList.push(existing);
-    });
-
-    // Append any custom milestones not in template (keep them)
-    c.milestones.forEach(m => {
-      const isInNewList = newList.some(x => x.id === m.id);
-      if (!isInNewList) newList.push(m);
-    });
-
-    c.milestones = newList;
-  }
-
-  function refreshCustomerQAFromTemplate(c){
-    if (!c) return;
-
-    if (!c.qa || typeof c.qa !== "object"){
-      c.qa = {
-        approvers: clone(state.qaTemplate.approvers),
-        phases: clone(state.qaTemplate.phases),
-        done: {},
-        notes: {},
-        signoff: {},
-        issues: []
-      };
-      return;
-    }
-
-    // Approvers merge by id
-    const existingApprovers = new Map((c.qa.approvers || []).map(a => [a.id, a]));
-    const mergedApprovers = [];
-    state.qaTemplate.approvers.forEach(a => {
-      if (existingApprovers.has(a.id)) mergedApprovers.push(existingApprovers.get(a.id));
-      else mergedApprovers.push(clone(a));
-    });
-    (c.qa.approvers || []).forEach(a => {
-      if (!mergedApprovers.some(x => x.id === a.id)) mergedApprovers.push(a);
-    });
-    c.qa.approvers = mergedApprovers;
-
-    // Phases + checks merge by id, preserve done/notes/signoff/issues
-    const existingPhases = new Map((c.qa.phases || []).map(p => [p.id, p]));
-    const mergedPhases = [];
-
-    state.qaTemplate.phases.forEach(tp => {
-      const ep = existingPhases.get(tp.id);
-      if (!ep){
-        mergedPhases.push(clone(tp));
-        return;
-      }
-      const mergedPhase = { ...ep, name: tp.name };
-
-      const existingChecks = new Map((ep.checks || []).map(ch => [ch.id, ch]));
-      const mergedChecks = [];
-      (tp.checks || []).forEach(tch => {
-        const ech = existingChecks.get(tch.id);
-        if (ech) mergedChecks.push({ ...ech, text: tch.text });
-        else mergedChecks.push(clone(tch));
-      });
-      (ep.checks || []).forEach(ch => {
-        if (!mergedChecks.some(x => x.id === ch.id)) mergedChecks.push(ch);
-      });
-
-      mergedPhase.checks = mergedChecks;
-      mergedPhases.push(mergedPhase);
-    });
-
-    (c.qa.phases || []).forEach(p => {
-      if (!mergedPhases.some(x => x.id === p.id)) mergedPhases.push(p);
-    });
-
-    c.qa.phases = mergedPhases;
-  }
-
-  // ----------------- Logic -----------------
-  function getActiveCustomer(){
-    return state.customers.find(c => c.id === activeCustomerId) || null;
-  }
-
-  function recomputeDueDates(customerId){
-    const c = state.customers.find(x => x.id === customerId);
-    if (!c?.startDate) return;
-
-    // Prefer tplId mapping; fallback to title if needed
-    const mapByTplId = new Map(state.template.map(t => [t.id, t.defaultDaysBeforeStart]));
-    const mapByTitle = new Map(state.template.map(t => [t.title, t.defaultDaysBeforeStart]));
-
-    c.milestones.forEach(m => {
-      const days = (m.tplId && mapByTplId.has(m.tplId)) ? mapByTplId.get(m.tplId) : mapByTitle.get(m.title);
-      if (typeof days === "number" && c.startDate) {
-        m.dueDate = addDays(c.startDate, -days);
-      }
-    });
-  }
-
-  function toggleMilestone(custId, milestoneId){
-    const c = state.customers.find(x => x.id === custId);
-    if (!c) return;
-    const m = c.milestones.find(x => x.id === milestoneId);
-    if (!m) return;
-    m.completed = !m.completed;
-    m.completedAt = m.completed ? new Date().toISOString() : "";
-    saveState();
-    renderRight();
-    renderCustomers();
-    renderStats();
-  }
-
-  function exportJSON(){
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pool-tracker-backup_${isoToday()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // -------- Red Tasks Report --------
-  function buildRedReport(){
-    const c = getActiveCustomer();
-    if (!c) return;
-
-    const today = isoToday();
-    const overdueOnly = $("overdueOnly").checked;
-
-    let items = c.milestones.filter(m => !m.completed);
-    if (overdueOnly) items = items.filter(m => m.dueDate && m.dueDate < today);
-
-    items.sort((a, b) => {
-      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-      if (a.dueDate) return -1;
-      if (b.dueDate) return 1;
-      return 0;
-    });
-
-    const host = $("redReportBody");
-    host.innerHTML = "";
-
-    if (items.length === 0){
-      host.innerHTML = `<div class="muted">No red tasks 🎉</div>`;
-      return;
-    }
-
-    items.forEach(m => {
-      const isOverdue = m.dueDate && m.dueDate < today;
-      const row = document.createElement("div");
-      row.className = "mrow " + (isOverdue ? "overdue" : "pending");
-      row.innerHTML = `
-        <div class="title">${escapeHtml(m.title)}</div>
-        <div class="small">Due: ${m.dueDate || "—"}${isOverdue ? " • OVERDUE" : ""}</div>
-        ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
-      `;
-      host.appendChild(row);
-    });
-  }
-
-  $("redReportBtn").onclick = () => {
-    buildRedReport();
-    $("dlgRedReport").showModal();
-  };
+  // ----------------- Red tasks report -----------------
+  $("redReportBtn").onclick = () => { buildRedReport(); $("dlgRedReport").showModal(); };
   $("closeRedReportBtn").onclick = () => $("dlgRedReport").close();
   $("overdueOnly").onchange = () => buildRedReport();
 
@@ -1077,7 +901,7 @@
     let items = c.milestones.filter(m => !m.completed);
     if (overdueOnly) items = items.filter(m => m.dueDate && m.dueDate < today);
 
-    items.sort((a, b) => {
+    items.sort((a,b)=>{
       if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
       if (a.dueDate) return -1;
       if (b.dueDate) return 1;
@@ -1086,301 +910,96 @@
 
     const lines = items.map(m => `- ${m.title} (Due: ${m.dueDate || "—"})`);
     const text = `Red Tasks Report — ${c.name}\n${lines.join("\n") || "(none)"}`;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      alert("Copied to clipboard.");
-    } catch {
-      alert("Copy failed (browser blocked it).");
-    }
+    try { await navigator.clipboard.writeText(text); alert("Copied to clipboard."); }
+    catch { alert("Copy failed (browser blocked it)."); }
   };
 
-  // ----------------- QA Rendering + Actions -----------------
-  function qaCounts(c){
-    if (!c.qa) return { total:0, done:0, signTotal:0, signDone:0, openIssues:0 };
+  function buildRedReport(){
+    const c = getActiveCustomer();
+    if (!c) return;
 
-    let total=0, done=0;
-    c.qa.phases.forEach(p=>{
-      p.checks.forEach(ch=>{
-        total++;
-        if (c.qa.done?.[p.id]?.[ch.id]) done++;
-      });
+    const today = isoToday();
+    const overdueOnly = $("overdueOnly").checked;
+
+    let items = c.milestones.filter(m => !m.completed);
+    if (overdueOnly) items = items.filter(m => m.dueDate && m.dueDate < today);
+
+    items.sort((a,b)=>{
+      if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
     });
 
-    const signTotal = c.qa.phases.length;
-    let signDone = 0;
-    c.qa.phases.forEach(p=>{
-      const s = c.qa.signoff?.[p.id];
-      if (s?.approverId && s?.date) signDone++;
-    });
+    const host = $("redReportBody");
+    host.innerHTML = "";
+    if (!items.length){
+      host.innerHTML = `<div class="muted">No red tasks 🎉</div>`;
+      return;
+    }
 
-    const openIssues = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved").length;
-    return { total, done, signTotal, signDone, openIssues };
+    items.forEach(m=>{
+      const isOverdue = m.dueDate && m.dueDate < today;
+      const row = document.createElement("div");
+      row.className = "mrow " + (isOverdue ? "overdue":"pending");
+      row.innerHTML = `
+        <div class="title">${escapeHtml(m.title)}</div>
+        <div class="small">Due: ${m.dueDate || "—"}${isOverdue ? " • OVERDUE":""}</div>
+        ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
+      `;
+      host.appendChild(row);
+    });
   }
+
+  // ----------------- QA actions -----------------
+  $("qaAddIssueBtn").onclick = () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    const title = prompt("Issue title (short):");
+    if (!title || !title.trim()) return;
+    const desc = prompt("Issue details (optional):") || "";
+    const phaseName = prompt("Phase name (type exactly, or leave blank):") || "";
+    c.qa.issues.push({
+      id: uid("iss"),
+      phaseName: phaseName.trim(),
+      title: title.trim(),
+      desc: desc.trim(),
+      status: "Open",
+      createdAt: new Date().toISOString()
+    });
+    saveState();
+    renderQA();
+  };
 
   $("qaCopyOpenIssuesBtn").onclick = async () => {
     const c = getActiveCustomer();
     if (!c) return;
-
-    if (!c.qa){
-      alert("No QA data for this customer yet. Refresh this customer to create QA from template.");
-      return;
-    }
-
     const open = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved");
-    const lines = open.map(i => {
-      const phaseName = c.qa.phases.find(p=>p.id===i.phaseId)?.name || "—";
-      return `- [${phaseName}] ${i.title}${i.desc ? ` — ${i.desc}` : ""}`;
-    });
+    const lines = open.map(i => `- ${i.phaseName ? `[${i.phaseName}] ` : ""}${i.title}${i.desc ? ` — ${i.desc}` : ""}`);
     const text = `Open QA Issues — ${c.name}\n${lines.join("\n") || "(none)"}`;
-
-    try{
-      await navigator.clipboard.writeText(text);
-      alert("Copied to clipboard.");
-    } catch {
-      alert("Copy failed (browser blocked it).");
-    }
+    try { await navigator.clipboard.writeText(text); alert("Copied to clipboard."); }
+    catch { alert("Copy failed (browser blocked it)."); }
   };
 
-  function renderQA(){
+  $("qaBuilderReportBtn").onclick = async () => {
     const c = getActiveCustomer();
-    const host = $("qaBody");
-    host.innerHTML = "";
-
     if (!c) return;
 
-    if (!c.qa){
-      host.innerHTML = `
-        <div class="mrow pending">
-          <div class="title">No QA snapshot for this customer yet</div>
-          <div class="small">Click <b>Refresh this customer</b> to create QA from the current QA template.</div>
-        </div>
-      `;
-      $("qaProgressPill").textContent = `QA: 0/0 (0%)`;
-      $("qaSignoffPill").textContent = `Signed off: 0/0`;
-      return;
-    }
+    const open = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved");
+    const lines = open.map(i => `- ${i.phaseName ? `[${i.phaseName}] ` : ""}${i.title}${i.desc ? ` — ${i.desc}` : ""}`);
+    const text =
+`DISCREPANCY REPORT — ${c.name}
+Address: ${c.address || "—"}
+Date: ${isoToday()}
 
-    const counts = qaCounts(c);
-    const pct = counts.total ? Math.round((counts.done/counts.total)*100) : 0;
-    $("qaProgressPill").textContent = `QA: ${counts.done}/${counts.total} (${pct}%)`;
-    $("qaSignoffPill").textContent = `Signed off: ${counts.signDone}/${counts.signTotal} • Open issues: ${counts.openIssues}`;
+OPEN ITEMS:
+${lines.join("\n") || "(none)"}
 
-    c.qa.phases.forEach(phase=>{
-      const card = document.createElement("div");
-      card.className = "phaseCard";
+Please confirm receipt and proposed correction timeline.`;
 
-      const phaseTotal = phase.checks.length;
-      const phaseDone = phase.checks.filter(ch => c.qa.done?.[phase.id]?.[ch.id]).length;
-      const phasePct = phaseTotal ? Math.round((phaseDone/phaseTotal)*100) : 0;
-
-      card.innerHTML = `
-        <div class="phaseTop">
-          <div>
-            <div class="phaseName">${escapeHtml(phase.name)}</div>
-            <div class="small">${phaseDone}/${phaseTotal} complete • ${phasePct}%</div>
-          </div>
-          <div class="row wrap" style="justify-content:flex-end">
-            <button class="btn secondary" data-action="addIssue" data-phase="${phase.id}">+ Issue</button>
-            <button class="btn secondary" data-action="markAll" data-phase="${phase.id}">Mark all</button>
-            <button class="btn secondary" data-action="clearAll" data-phase="${phase.id}">Clear</button>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div data-checklist></div>
-
-        <div class="hr"></div>
-
-        <div class="two">
-          <div>
-            <div class="hint">Phase notes</div>
-            <textarea data-notes placeholder="Notes, punch list items, measurements, photos links, etc."></textarea>
-          </div>
-          <div>
-            <div class="hint">Signoff</div>
-            <div class="two">
-              <div>
-                <div class="hint">Approved by</div>
-                <select data-approver></select>
-              </div>
-              <div>
-                <div class="hint">Date</div>
-                <input type="date" data-date />
-              </div>
-            </div>
-            <div class="row wrap" style="justify-content:flex-end; margin-top:10px">
-              <button class="btn secondary" data-action="today" data-phase="${phase.id}">Set today</button>
-              <button class="btn danger" data-action="clearSign" data-phase="${phase.id}">Clear</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div>
-          <div class="hint">Issues (phase)</div>
-          <div data-issues style="display:flex; flex-direction:column; gap:8px"></div>
-        </div>
-      `;
-
-      // checklist
-      const list = card.querySelector("[data-checklist]");
-      if (!phase.checks.length){
-        list.innerHTML = `<div class="muted">No checks in this phase template.</div>`;
-      } else {
-        phase.checks.forEach(ch=>{
-          const row = document.createElement("div");
-          row.className = "qaCheck";
-          const checked = !!(c.qa.done?.[phase.id]?.[ch.id]);
-          row.innerHTML = `
-            <input type="checkbox" ${checked ? "checked":""} />
-            <div class="txt">
-              <div class="title" style="font-size:13px">${escapeHtml(ch.text)}</div>
-            </div>
-          `;
-          row.querySelector("input").onchange = (e) => {
-            c.qa.done[phase.id] ??= {};
-            c.qa.done[phase.id][ch.id] = e.target.checked;
-            saveState();
-            renderQA();
-            renderCustomers();
-          };
-          list.appendChild(row);
-        });
-      }
-
-      // notes (no re-render)
-      const ta = card.querySelector("[data-notes]");
-      ta.value = c.qa.notes?.[phase.id] || "";
-      ta.oninput = () => {
-        c.qa.notes[phase.id] = ta.value;
-        saveState();
-      };
-
-      // approver dropdown
-      const sel = card.querySelector("[data-approver]");
-      sel.innerHTML = "";
-      const opt0 = document.createElement("option");
-      opt0.value = ""; opt0.textContent = "— Select —";
-      sel.appendChild(opt0);
-
-      (c.qa.approvers || []).forEach(a=>{
-        const o = document.createElement("option");
-        o.value = a.id;
-        o.textContent = a.name;
-        sel.appendChild(o);
-      });
-
-      const s = c.qa.signoff?.[phase.id] || {};
-      sel.value = s.approverId || "";
-
-      sel.onchange = () => {
-        c.qa.signoff[phase.id] ??= {};
-        c.qa.signoff[phase.id].approverId = sel.value || "";
-        saveState();
-        renderQA();
-        renderCustomers();
-      };
-
-      // signoff date
-      const date = card.querySelector("[data-date]");
-      date.value = s.date || "";
-      date.oninput = () => {
-        c.qa.signoff[phase.id] ??= {};
-        c.qa.signoff[phase.id].date = date.value;
-        saveState();
-      };
-
-      // issues list
-      const issuesHost = card.querySelector("[data-issues]");
-      const issues = (c.qa.issues||[]).filter(i => i.phaseId === phase.id);
-      if (!issues.length){
-        issuesHost.innerHTML = `<div class="muted">No issues logged.</div>`;
-      } else {
-        issues.slice().reverse().forEach(i=>{
-          const row = document.createElement("div");
-          const isResolved = (i.status||"Open") === "Resolved";
-          row.className = "mrow " + (isResolved ? "complete" : "pending");
-          row.style.padding = "10px";
-          row.innerHTML = `
-            <div class="row wrap" style="justify-content:space-between">
-              <div>
-                <div class="title">${escapeHtml(i.title)}</div>
-                <div class="small">${escapeHtml(i.desc||"")}</div>
-              </div>
-              <div class="row wrap">
-                <span class="pill ${isResolved ? "ok":"bad"}">${escapeHtml(i.status||"Open")}</span>
-                <button class="btn secondary" data-toggle>Toggle</button>
-                <button class="btn danger" data-del>Delete</button>
-              </div>
-            </div>
-          `;
-          row.querySelector("[data-toggle]").onclick = () => {
-            i.status = isResolved ? "Open" : "Resolved";
-            saveState();
-            renderQA();
-          };
-          row.querySelector("[data-del]").onclick = () => {
-            if (!confirm("Delete this issue?")) return;
-            c.qa.issues = c.qa.issues.filter(x => x.id !== i.id);
-            saveState();
-            renderQA();
-          };
-          issuesHost.appendChild(row);
-        });
-      }
-
-      // buttons
-      card.querySelectorAll("button[data-action]").forEach(btn=>{
-        btn.onclick = () => {
-          const action = btn.getAttribute("data-action");
-          const phaseId = btn.getAttribute("data-phase");
-          if (action === "markAll"){
-            c.qa.done[phaseId] ??= {};
-            phase.checks.forEach(ch => c.qa.done[phaseId][ch.id] = true);
-            saveState();
-            renderQA();
-          }
-          if (action === "clearAll"){
-            c.qa.done[phaseId] = {};
-            saveState();
-            renderQA();
-          }
-          if (action === "today"){
-            const d = isoToday();
-            c.qa.signoff[phaseId] ??= {};
-            c.qa.signoff[phaseId].date = d;
-            saveState();
-            renderQA();
-          }
-          if (action === "clearSign"){
-            c.qa.signoff[phaseId] = {};
-            saveState();
-            renderQA();
-          }
-          if (action === "addIssue"){
-            const title = prompt("Issue title (short):");
-            if (!title || !title.trim()) return;
-            const desc = prompt("Issue details (optional):") || "";
-            c.qa.issues.push({
-              id: uid("iss"),
-              phaseId,
-              title: title.trim(),
-              desc: desc.trim(),
-              status: "Open",
-              createdAt: new Date().toISOString()
-            });
-            saveState();
-            renderQA();
-          }
-        };
-      });
-
-      host.appendChild(card);
-    });
-  }
+    try { await navigator.clipboard.writeText(text); alert("Builder report copied to clipboard."); }
+    catch { alert("Copy failed (browser blocked it)."); }
+  };
 
   // ----------------- Rendering -----------------
   function render(){
@@ -1401,24 +1020,26 @@
   }
 
   function renderCustomers(){
-    customerList.innerHTML = "";
+    const host = $("customerList");
+    host.innerHTML = "";
+
     const q = $("search").value.trim().toLowerCase();
     const today = isoToday();
 
-    const list = (!q ? state.customers : state.customers.filter(c => {
+    const list = (!q ? state.customers : state.customers.filter(c=>{
       const hay = `${c.name} ${c.phone||""} ${c.email||""} ${c.address||""}`.toLowerCase();
       return hay.includes(q);
     }));
 
-    if (list.length === 0){
-      customerList.innerHTML = `<div class="muted">No customers yet. Click <b>+ Add</b>.</div>`;
+    if (!list.length){
+      host.innerHTML = `<div class="muted">No customers yet. Click <b>+ Add</b>.</div>`;
       return;
     }
 
-    list.forEach(c => {
+    list.forEach(c=>{
       const total = c.milestones.length;
-      const done = c.milestones.filter(m => m.completed).length;
-      const overdue = c.milestones.some(m => !m.completed && m.dueDate && m.dueDate < today);
+      const done = c.milestones.filter(m=>m.completed).length;
+      const overdue = c.milestones.some(m=>!m.completed && m.dueDate && m.dueDate < today);
       const pct = total ? Math.round((done/total)*100) : 0;
 
       const div = document.createElement("div");
@@ -1432,13 +1053,13 @@
             <div class="meta">Start: ${c.startDate || "—"}</div>
           </div>
           <div style="text-align:right">
-            <span class="pill ${overdue ? "bad" : "ok"}">${overdue ? "Overdue" : "OK"}</span>
+            <span class="pill ${overdue ? "bad":"ok"}">${overdue ? "Overdue":"OK"}</span>
             <div class="meta">${done}/${total}</div>
           </div>
         </div>
         <div class="bar"><div style="width:${pct}%"></div></div>
       `;
-      customerList.appendChild(div);
+      host.appendChild(div);
     });
   }
 
@@ -1462,7 +1083,7 @@
     $("panelDetails").style.display = (has && activeTab === "details") ? "" : "none";
     $("panelQA").style.display = (has && activeTab === "qa") ? "" : "none";
 
-    document.querySelectorAll("#tabs .tab").forEach(t => {
+    document.querySelectorAll("#tabs .tab").forEach(t=>{
       t.classList.toggle("active", t.dataset.tab === activeTab);
     });
 
@@ -1474,24 +1095,41 @@
 
     renderHeaderMeta();
 
-    if (activeTab === "details"){
-      bindDetailInputs();
-    } else if (activeTab === "qa"){
-      renderQA();
-    } else {
-      renderMilestones();
-    }
+    if (activeTab === "details") bindDetailInputs();
+    else if (activeTab === "qa") renderQA();
+    else renderMilestones();
+  }
+
+  function bindDetailInputs(){
+    const c = getActiveCustomer();
+    if (!c) return;
+
+    const map = [
+      ["dName","name"], ["dPhone","phone"], ["dEmail","email"], ["dAddress","address"], ["dStartDate","startDate"]
+    ];
+
+    map.forEach(([id,key])=>{
+      const el = $(id);
+      el.value = c[key] || "";
+      el.oninput = () => {
+        c[key] = el.value || "";
+        saveState();
+        renderCustomers();
+        renderHeaderMeta();
+        renderStats();
+      };
+    });
   }
 
   function renderMilestones(){
     const c = getActiveCustomer();
     if (!c) return;
-    milestoneList.innerHTML = "";
+    const host = $("milestoneList");
+    host.innerHTML = "";
 
     const total = c.milestones.length;
-    const done = c.milestones.filter(m => m.completed).length;
+    const done = c.milestones.filter(m=>m.completed).length;
     const pct = total ? Math.round((done/total)*100) : 0;
-
     $("progressPill").textContent = `${done}/${total} (${pct}%)`;
 
     const today = isoToday();
@@ -1505,136 +1143,298 @@
       pill.textContent = "No overdue";
     }
 
-    if (total === 0){
-      milestoneList.innerHTML = `<div class="muted">No milestones yet. Edit the template or add a custom milestone.</div>`;
+    if (!total){
+      host.innerHTML = `<div class="muted">No milestones yet. Edit the template or add a custom milestone.</div>`;
       return;
     }
 
-    [...c.milestones]
-      .forEach(m => {
-        const isOverdue = !m.completed && m.dueDate && m.dueDate < today;
+    [...c.milestones].forEach(m=>{
+      const isOverdue = !m.completed && m.dueDate && m.dueDate < today;
 
-        const div = document.createElement("div");
-        let statusClass = "pending";
-        if (m.completed) statusClass = "complete";
-        else if (isOverdue) statusClass = "overdue";
-        div.className = "mrow " + statusClass;
+      const div = document.createElement("div");
+      div.className = "mrow " + (m.completed ? "complete" : (isOverdue ? "overdue" : "pending"));
 
-        const due = m.dueDate || "—";
-        const doneAt = m.completedAt ? ` • Done: ${new Date(m.completedAt).toLocaleString()}` : "";
-        const overdueTxt = isOverdue ? " • OVERDUE" : "";
-
-        div.innerHTML = `
-          <div class="mhead">
-            <div class="chk ${m.completed ? "on" : ""}" title="${m.completed ? "Mark incomplete" : "Mark complete"}">✓</div>
-            <div style="min-width:0">
-              <div class="title">${escapeHtml(m.title)}</div>
-              <div class="small">Due: ${due}${doneAt}${overdueTxt}</div>
-              ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
-            </div>
-          </div>
-
-          <div class="mlast">
-            <div style="min-width:220px">
-              <div class="hint">Due date</div>
-              <input type="date" value="${m.dueDate || ""}" data-due />
-            </div>
-            <button class="btn secondary" data-notes>Notes</button>
-            <button class="btn danger" data-del>Delete</button>
-          </div>
-        `;
-
-        div.querySelector(".chk").onclick = () => toggleMilestone(c.id, m.id);
-
-        div.querySelector("[data-due]").onchange = (e) => {
-          m.dueDate = e.target.value || "";
-          saveState();
-          renderMilestones();
-          renderCustomers();
-          renderStats();
-        };
-
-        div.querySelector("[data-notes]").onclick = () => {
-          const notes = prompt("Notes (optional):", m.notes || "");
-          if (notes === null) return;
-          m.notes = notes.trim();
-          saveState();
-          renderMilestones();
-        };
-
-        div.querySelector("[data-del]").onclick = () => {
-          if (!confirm("Delete this milestone?")) return;
-          c.milestones = c.milestones.filter(x => x.id !== m.id);
-          saveState();
-          renderMilestones();
-          renderCustomers();
-          renderStats();
-        };
-
-        milestoneList.appendChild(div);
-      });
-
-    renderStats();
-  }
-
-  function renderTemplateEditor(){
-    const host = $("templateList");
-    host.innerHTML = "";
-    if (state.template.length === 0){
-      host.innerHTML = `<div class="muted">Your template is empty. Click <b>+ Add template item</b>.</div>`;
-      return;
-    }
-
-    state.template.forEach(t => {
-      const box = document.createElement("div");
-      box.className = "mrow";
-      box.innerHTML = `
-        <div class="two">
-          <div>
-            <div class="hint">Title</div>
-            <input value="${escapeAttr(t.title || "")}" data-title />
-          </div>
-          <div>
-            <div class="hint">Days before start</div>
-            <input type="number" value="${(t.defaultDaysBeforeStart ?? "")}" data-days placeholder="e.g. 14" />
+      div.innerHTML = `
+        <div class="mhead">
+          <div class="chk ${m.completed ? "on":""}" title="${m.completed ? "Mark incomplete":"Mark complete"}">✓</div>
+          <div style="min-width:0">
+            <div class="title">${escapeHtml(m.title)}</div>
+            <div class="small">Due: ${m.dueDate || "—"}${m.completedAt ? ` • Done: ${new Date(m.completedAt).toLocaleString()}` : ""}${isOverdue ? " • OVERDUE":""}</div>
+            ${m.notes ? `<div class="small" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(m.notes)}</div>` : ""}
           </div>
         </div>
-        <div>
-          <div class="hint">Notes (optional)</div>
-          <input value="${escapeAttr(t.notes || "")}" data-notes />
-        </div>
-        <div class="row" style="justify-content:flex-end">
+
+        <div class="mlast">
+          <div style="min-width:220px">
+            <div class="hint">Due date</div>
+            <input type="date" value="${m.dueDate || ""}" data-due />
+          </div>
+          <button class="btn secondary" data-notes>Notes</button>
           <button class="btn danger" data-del>Delete</button>
         </div>
       `;
 
-      box.querySelector("[data-title]").oninput = (e) => t.title = e.target.value;
-      box.querySelector("[data-notes]").oninput = (e) => t.notes = e.target.value;
-      box.querySelector("[data-days]").oninput = (e) => {
-        const v = e.target.value;
-        t.defaultDaysBeforeStart = (v === "" ? null : Number(v));
-      };
-      box.querySelector("[data-del]").onclick = () => {
-        state.template = state.template.filter(x => x.id !== t.id);
-        renderTemplateEditor();
+      div.querySelector(".chk").onclick = () => {
+        m.completed = !m.completed;
+        m.completedAt = m.completed ? new Date().toISOString() : "";
+        saveState();
+        renderMilestones();
+        renderCustomers();
+        renderStats();
       };
 
-      host.appendChild(box);
+      div.querySelector("[data-due]").onchange = (e) => {
+        m.dueDate = e.target.value || "";
+        saveState();
+        renderMilestones();
+        renderCustomers();
+        renderStats();
+      };
+
+      div.querySelector("[data-notes]").onclick = () => {
+        const notes = prompt("Notes (optional):", m.notes || "");
+        if (notes === null) return;
+        m.notes = notes.trim();
+        saveState();
+        renderMilestones();
+      };
+
+      div.querySelector("[data-del]").onclick = () => {
+        if (!confirm("Delete this milestone?")) return;
+        c.milestones = c.milestones.filter(x => x.id !== m.id);
+        saveState();
+        renderMilestones();
+        renderCustomers();
+        renderStats();
+      };
+
+      host.appendChild(div);
+    });
+
+    renderStats();
+  }
+
+  function qaCounts(c){
+    let total = 0, done = 0;
+    state.qaLibrary.phases.forEach(p=>{
+      p.checks.forEach(ch=>{
+        total++;
+        if (c.qa.done?.[p.id]?.[ch.id]) done++;
+      });
+    });
+
+    const signTotal = state.qaLibrary.phases.length;
+    let signDone = 0;
+    state.qaLibrary.phases.forEach(p=>{
+      const s = c.qa.signoff?.[p.id];
+      if (s?.approver && s?.date) signDone++;
+    });
+
+    const openIssues = (c.qa.issues||[]).filter(i => (i.status||"Open") !== "Resolved").length;
+    return { total, done, signTotal, signDone, openIssues };
+  }
+
+  function renderQA(){
+    const c = getActiveCustomer();
+    if (!c) return;
+
+    const counts = qaCounts(c);
+    const pct = counts.total ? Math.round((counts.done/counts.total)*100) : 0;
+    $("qaProgressPill").textContent = `QA: ${counts.done}/${counts.total} (${pct}%)`;
+    $("qaSignoffPill").textContent = `Signed off: ${counts.signDone}/${counts.signTotal} • Open issues: ${counts.openIssues}`;
+
+    const host = $("qaBody");
+    host.innerHTML = "";
+
+    state.qaLibrary.phases.forEach(phase=>{
+      const card = document.createElement("div");
+      card.className = "phaseCard";
+
+      const phaseTotal = phase.checks.length;
+      const phaseDone = phase.checks.filter(ch => c.qa.done?.[phase.id]?.[ch.id]).length;
+      const phasePct = phaseTotal ? Math.round((phaseDone/phaseTotal)*100) : 0;
+
+      const sign = c.qa.signoff?.[phase.id] || { approver:"", date:"" };
+
+      card.innerHTML = `
+        <div class="row wrap" style="justify-content:space-between; align-items:flex-start; gap:10px">
+          <div>
+            <div class="phaseTitle">${escapeHtml(phase.name)}</div>
+            <div class="small">${phaseDone}/${phaseTotal} complete • ${phasePct}%</div>
+          </div>
+          <div class="row wrap" style="justify-content:flex-end">
+            <button class="btn secondary" data-markall>Mark all</button>
+            <button class="btn secondary" data-clear>Clear</button>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div data-checks></div>
+
+        <div class="hr"></div>
+
+        <div class="two">
+          <div>
+            <div class="hint">Phase notes</div>
+            <textarea data-notes placeholder="Notes, punch list, measurements, photo links, etc."></textarea>
+          </div>
+          <div>
+            <div class="hint">Signoff</div>
+            <div class="two">
+              <div>
+                <div class="hint">Approved by</div>
+                <select data-approver></select>
+              </div>
+              <div>
+                <div class="hint">Date</div>
+                <input type="date" data-date />
+              </div>
+            </div>
+            <div class="row wrap" style="justify-content:flex-end; margin-top:10px">
+              <button class="btn secondary" data-today>Set today</button>
+              <button class="btn danger" data-clearsign>Clear signoff</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div>
+          <div class="hint">Issues tagged to this phase</div>
+          <div data-issues style="display:flex; flex-direction:column; gap:8px"></div>
+        </div>
+      `;
+
+      // checks
+      const checksHost = card.querySelector("[data-checks]");
+      if (!phase.checks.length){
+        checksHost.innerHTML = `<div class="muted">No checks in this phase (QA library).</div>`;
+      } else {
+        phase.checks.forEach(ch=>{
+          const checked = !!(c.qa.done?.[phase.id]?.[ch.id]);
+          const row = document.createElement("div");
+          row.className = "qaCheck";
+          row.innerHTML = `
+            <input type="checkbox" ${checked ? "checked":""} />
+            <div class="txt"><div class="title" style="font-size:13px">${escapeHtml(ch.text)}</div></div>
+          `;
+          row.querySelector("input").onchange = (e) => {
+            c.qa.done[phase.id] ??= {};
+            c.qa.done[phase.id][ch.id] = e.target.checked;
+            saveState();
+            renderQA();
+            renderCustomers();
+          };
+          checksHost.appendChild(row);
+        });
+      }
+
+      // phase notes (NO rerender on typing)
+      const notesEl = card.querySelector("[data-notes]");
+      notesEl.value = c.qa.notes?.[phase.id] || "";
+      notesEl.addEventListener("input", () => {
+        c.qa.notes[phase.id] = notesEl.value;
+        saveState();
+      });
+
+      // approver dropdown
+      const sel = card.querySelector("[data-approver]");
+      sel.innerHTML = "";
+      const opt0 = document.createElement("option");
+      opt0.value = ""; opt0.textContent = "— Select —";
+      sel.appendChild(opt0);
+      (state.qaLibrary.approvers||[]).forEach(name=>{
+        const o = document.createElement("option");
+        o.value = name;
+        o.textContent = name;
+        sel.appendChild(o);
+      });
+      sel.value = sign.approver || "";
+      sel.onchange = () => {
+        c.qa.signoff[phase.id] ??= {};
+        c.qa.signoff[phase.id].approver = sel.value || "";
+        saveState();
+        renderQA();
+      };
+
+      // signoff date
+      const dateEl = card.querySelector("[data-date]");
+      dateEl.value = sign.date || "";
+      dateEl.oninput = () => {
+        c.qa.signoff[phase.id] ??= {};
+        c.qa.signoff[phase.id].date = dateEl.value || "";
+        saveState();
+      };
+
+      // buttons
+      card.querySelector("[data-markall]").onclick = () => {
+        c.qa.done[phase.id] ??= {};
+        phase.checks.forEach(ch => c.qa.done[phase.id][ch.id] = true);
+        saveState();
+        renderQA();
+      };
+      card.querySelector("[data-clear]").onclick = () => {
+        c.qa.done[phase.id] = {};
+        saveState();
+        renderQA();
+      };
+      card.querySelector("[data-today]").onclick = () => {
+        c.qa.signoff[phase.id] ??= {};
+        c.qa.signoff[phase.id].date = isoToday();
+        saveState();
+        renderQA();
+      };
+      card.querySelector("[data-clearsign]").onclick = () => {
+        c.qa.signoff[phase.id] = {};
+        saveState();
+        renderQA();
+      };
+
+      // issues tagged by phaseName match (simple + stable)
+      const issuesHost = card.querySelector("[data-issues]");
+      const issues = (c.qa.issues||[]).filter(i => (i.phaseName||"").toLowerCase() === (phase.name||"").toLowerCase());
+      if (!issues.length){
+        issuesHost.innerHTML = `<div class="muted">No issues tagged to this phase.</div>`;
+      } else {
+        issues.slice().reverse().forEach(i=>{
+          const isResolved = (i.status||"Open") === "Resolved";
+          const row = document.createElement("div");
+          row.className = "mrow " + (isResolved ? "complete":"pending");
+          row.style.padding = "10px";
+          row.innerHTML = `
+            <div class="row wrap" style="justify-content:space-between">
+              <div>
+                <div class="title">${escapeHtml(i.title)}</div>
+                <div class="small">${escapeHtml(i.desc||"")}</div>
+              </div>
+              <div class="row wrap">
+                <span class="pill ${isResolved ? "ok":"bad"}">${escapeHtml(i.status||"Open")}</span>
+                <button class="btn secondary" data-toggle>Toggle</button>
+                <button class="btn danger" data-del>Delete</button>
+              </div>
+            </div>
+          `;
+          row.querySelector("[data-toggle]").onclick = () => {
+            i.status = isResolved ? "Open":"Resolved";
+            saveState();
+            renderQA();
+          };
+          row.querySelector("[data-del]").onclick = () => {
+            if (!confirm("Delete this issue?")) return;
+            c.qa.issues = c.qa.issues.filter(x => x.id !== i.id);
+            saveState();
+            renderQA();
+          };
+          issuesHost.appendChild(row);
+        });
+      }
+
+      host.appendChild(card);
     });
   }
 
-  // ----------------- Utilities -----------------
-  function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-  function escapeAttr(str){ return escapeHtml(str).replaceAll("\n"," "); }
-
-  // Initial render
+  // ----------------- Initial render -----------------
   render();
 </script>
 </body>

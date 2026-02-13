@@ -1343,7 +1343,8 @@ function openBuilderReport(projectId){
     catch{ txt.focus(); txt.select(); alert("Press Ctrl+C to copy."); }
   });
 
-  // SAFE PRINT: no embedded </script> anywhere
+  // SAFE PRINT: no embedded <\/script>
+ anywhere
   body.querySelector("#print").addEventListener("click", ()=>{
     const to=body.querySelector("#to").value.trim();
     const subj=body.querySelector("#subj").value.trim();
@@ -1417,7 +1418,8 @@ function resetAll(){
 }
 
 renderAll();
-</script>
+<\/script>
+
 </body>
 </html>
 

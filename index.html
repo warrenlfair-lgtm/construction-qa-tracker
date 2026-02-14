@@ -198,9 +198,9 @@
               <span class="pill" id="qaSignoffPill">Signed off: 0/0</span>
             </div>
             <div class="row wrap">
+              <button class="btn secondary" id="qaIssueReportBtn">Issue report</button>
               <button class="btn secondary" id="qaBuilderReportBtn">Builder report</button>
               <button class="btn secondary" id="qaCopyOpenIssuesBtn">Copy open issues</button>
-              <button class="btn secondary" id="qaAddIssueBtn">+ Issue</button>
             </div>
           </div>
           <div id="qaBody"></div>
@@ -334,13 +334,33 @@
   </div>
 </dialog>
 
+<!-- ISSUE REPORT -->
+<dialog id="dlgIssueReport">
+  <div class="dlg-hd">
+    <div style="font-weight:900">Issue Report</div>
+    <div class="hint">Use this during meetings. Shows issues across phases.</div>
+  </div>
+  <div class="dlg-bd">
+    <div class="row wrap" style="justify-content:space-between; gap:10px">
+      <label class="pill" style="cursor:pointer">
+        <input type="checkbox" id="issuesOpenOnly" style="width:auto; margin:0 8px 0 0" checked />
+        Open only
+      </label>
+      <button class="btn secondary" id="copyIssueReportBtn">Copy report</button>
+    </div>
+    <div class="hr"></div>
+    <div id="issueReportBody" style="display:flex; flex-direction:column; gap:10px"></div>
+  </div>
+  <div class="dlg-ft">
+    <button class="btn secondary" id="closeIssueReportBtn">Close</button>
+  </div>
+</dialog>
+
 <script>
   // ----------------- Storage -----------------
   const LS_KEY = "pool_milestones_qa_stable_v1";
   const $ = (id) => document.getElementById(id);
   const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
-  const clone = (obj) => JSON.parse(JSON.stringify(obj));
-
   const isoToday = () => {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -356,6 +376,10 @@
     const dd = String(d.getDate()).padStart(2,"0");
     return `${yyyy}-${mm}-${dd}`;
   };
+  const escapeHtml = (str) => String(str ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  const escapeAttr = (str) => escapeHtml(str).replaceAll("\n"," ");
 
   // ----------------- Defaults -----------------
   const DEFAULT_MILESTONE_TEMPLATE = [
@@ -370,7 +394,6 @@
     { id: uid("t"), title: "Materials / options selections finalized", notes: "", defaultDaysBeforeStart: 14 },
   ];
 
-  // QA LIBRARY is shared globally across all customers
   const DEFAULT_QA_LIBRARY = {
     approvers: ["Warren", "Superintendent", "Builder Rep"],
     phases: [
@@ -421,7 +444,6 @@
       if (!raw) return { milestoneTemplate: DEFAULT_MILESTONE_TEMPLATE, qaLibrary: DEFAULT_QA_LIBRARY, customers: [] };
       const parsed = JSON.parse(raw);
 
-      // Migration / guards
       parsed.milestoneTemplate ??= DEFAULT_MILESTONE_TEMPLATE;
       parsed.qaLibrary ??= DEFAULT_QA_LIBRARY;
       parsed.customers ??= [];
@@ -447,19 +469,11 @@
   let activeCustomerId = state.customers[0]?.id ?? null;
   let activeTab = "checklist";
 
-  // ----------------- Helpers -----------------
-  const escapeHtml = (str) => String(str ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  const escapeAttr = (str) => escapeHtml(str).replaceAll("\n"," ");
-
   const getActiveCustomer = () => state.customers.find(c => c.id === activeCustomerId) || null;
 
-  // Apply milestone template to a customer (merge-forward; keep customs)
+  // ----------------- Milestone merge/apply -----------------
   function applyMilestoneTemplateToCustomer(c){
     if (!c) return;
-
-    // ensure tplId exists
     c.milestones.forEach(m => { if (!("tplId" in m)) m.tplId = null; });
 
     const byTplId = new Map(c.milestones.filter(m=>m.tplId).map(m => [m.tplId, m]));
@@ -472,15 +486,7 @@
         const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
           ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
           : "";
-        m = {
-          id: uid("m"),
-          tplId: t.id,
-          title: t.title,
-          notes: t.notes || "",
-          dueDate,
-          completed:false,
-          completedAt:""
-        };
+        m = { id: uid("m"), tplId: t.id, title: t.title, notes: t.notes || "", dueDate, completed:false, completedAt:"" };
       } else {
         m.tplId = t.id;
         m.title = t.title;
@@ -489,7 +495,6 @@
       merged.push(m);
     });
 
-    // keep customer-specific milestones not in template
     c.milestones.forEach(m=>{
       if (!merged.some(x => x.id === m.id)) merged.push(m);
     });
@@ -501,17 +506,13 @@
     if (!c?.startDate) return;
     const mapByTplId = new Map(state.milestoneTemplate.map(t => [t.id, t.defaultDaysBeforeStart]));
     const mapByTitle = new Map(state.milestoneTemplate.map(t => [t.title, t.defaultDaysBeforeStart]));
-
     c.milestones.forEach(m=>{
       const days = (m.tplId && mapByTplId.has(m.tplId)) ? mapByTplId.get(m.tplId) : mapByTitle.get(m.title);
       if (typeof days === "number") m.dueDate = addDays(c.startDate, -Number(days));
     });
   }
 
-  // QA is auto-updating because we render from qaLibrary.
-  // We only need to ensure customer.qa maps exist; already guarded.
-
-  // ----------------- Buttons: Left -----------------
+  // ----------------- Customers: Left -----------------
   $("addCustomerBtn").onclick = () => {
     $("cName").value = "";
     $("cPhone").value = "";
@@ -543,7 +544,7 @@
 
   $("search").addEventListener("input", () => renderCustomers());
 
-  // ----------------- Customer dialog -----------------
+  // Add customer dialog
   $("cCancel").onclick = () => $("dlgCustomer").close();
   $("cCreate").onclick = () => {
     const name = $("cName").value.trim();
@@ -561,20 +562,11 @@
       qa: { done:{}, notes:{}, signoff:{}, issues:[] }
     };
 
-    // build milestones from template
     c.milestones = state.milestoneTemplate.map(t=>{
       const dueDate = (c.startDate && typeof t.defaultDaysBeforeStart === "number")
         ? addDays(c.startDate, -Number(t.defaultDaysBeforeStart))
         : "";
-      return {
-        id: uid("m"),
-        tplId: t.id,
-        title: t.title,
-        notes: t.notes || "",
-        dueDate,
-        completed:false,
-        completedAt:""
-      };
+      return { id: uid("m"), tplId: t.id, title: t.title, notes: t.notes || "", dueDate, completed:false, completedAt:"" };
     });
 
     state.customers.unshift(c);
@@ -584,7 +576,7 @@
     render();
   };
 
-  // ----------------- Import dialog -----------------
+  // Import dialog
   $("iCancel").onclick = () => $("dlgImport").close();
   $("iDo").onclick = () => {
     const raw = $("importText").value.trim();
@@ -592,10 +584,11 @@
     try{
       const parsed = JSON.parse(raw);
       state = parsed;
-      // re-guard/migrate
+
       state.milestoneTemplate ??= DEFAULT_MILESTONE_TEMPLATE;
       state.qaLibrary ??= DEFAULT_QA_LIBRARY;
       state.customers ??= [];
+
       state.customers.forEach(c=>{
         c.milestones ??= [];
         c.qa ??= { done:{}, notes:{}, signoff:{}, issues:[] };
@@ -639,42 +632,24 @@
     const title = prompt("Add a custom milestone (for this customer):");
     if (!title || !title.trim()) return;
 
-    c.milestones.unshift({
-      id: uid("m"),
-      tplId: null,
-      title: title.trim(),
-      notes: "",
-      dueDate: "",
-      completed:false,
-      completedAt:""
-    });
+    c.milestones.unshift({ id: uid("m"), tplId: null, title: title.trim(), notes: "", dueDate: "", completed:false, completedAt:"" });
     saveState();
     render();
   };
 
   // Tabs
   document.querySelectorAll("#tabs .tab").forEach(tab=>{
-    tab.onclick = () => {
-      activeTab = tab.dataset.tab;
-      renderRight();
-    };
+    tab.onclick = () => { activeTab = tab.dataset.tab; renderRight(); };
   });
 
-  // ----------------- Milestone Template dialog -----------------
-  $("editTemplateBtn").onclick = () => {
-    renderMilestoneTemplateEditor();
-    $("dlgTemplate").showModal();
-  };
+  // ----------------- Milestone Template -----------------
+  $("editTemplateBtn").onclick = () => { renderMilestoneTemplateEditor(); $("dlgTemplate").showModal(); };
   $("tCancel").onclick = () => $("dlgTemplate").close();
-  $("tAdd").onclick = () => {
-    state.milestoneTemplate.unshift({ id: uid("t"), title:"New milestone", notes:"", defaultDaysBeforeStart: 7 });
-    renderMilestoneTemplateEditor();
-  };
+  $("tAdd").onclick = () => { state.milestoneTemplate.unshift({ id: uid("t"), title:"New milestone", notes:"", defaultDaysBeforeStart: 7 }); renderMilestoneTemplateEditor(); };
   $("tApplyAll").onclick = () => {
-    if (!confirm("Apply milestone template to ALL customers? (Safe: adds new template items, keeps customer custom items)")) return;
+    if (!confirm("Apply milestone template to ALL customers? (Adds new template items, keeps customer custom items)")) return;
     state.customers.forEach(c => applyMilestoneTemplateToCustomer(c));
-    saveState();
-    render();
+    saveState(); render();
     alert("Applied milestone template to ALL customers.");
   };
   $("tSave").onclick = () => {
@@ -729,7 +704,6 @@
       const notesEl = box.querySelector("[data-notes]");
       const daysEl  = box.querySelector("[data-days]");
 
-      // IMPORTANT: no re-render on input (prevents the “one character then jump” bug)
       titleEl.addEventListener("input", () => { t.title = titleEl.value; });
       notesEl.addEventListener("input", () => { t.notes = notesEl.value; });
       daysEl.addEventListener("input",  () => { t.defaultDaysBeforeStart = daysEl.value; });
@@ -743,24 +717,14 @@
     });
   }
 
-  // ----------------- QA Library dialog -----------------
-  $("editQALibraryBtn").onclick = () => {
-    renderQALibraryEditor();
-    $("dlgQALib").showModal();
-  };
+  // ----------------- QA Library -----------------
+  $("editQALibraryBtn").onclick = () => { renderQALibraryEditor(); $("dlgQALib").showModal(); };
   $("qaLibClose").onclick = () => $("dlgQALib").close();
 
-  $("qaAddApproverBtn").onclick = () => {
-    state.qaLibrary.approvers.push("New approver");
-    renderQALibraryEditor();
-  };
-  $("qaAddPhaseBtn").onclick = () => {
-    state.qaLibrary.phases.push({ id: uid("p"), name:"New phase", checks:[] });
-    renderQALibraryEditor();
-  };
+  $("qaAddApproverBtn").onclick = () => { state.qaLibrary.approvers.push("New approver"); renderQALibraryEditor(); };
+  $("qaAddPhaseBtn").onclick = () => { state.qaLibrary.phases.push({ id: uid("p"), name:"New phase", checks:[] }); renderQALibraryEditor(); };
 
   $("qaLibSave").onclick = () => {
-    // sanitize
     state.qaLibrary.approvers = (state.qaLibrary.approvers||[])
       .map(n => String(n||"").trim())
       .filter(n => n.length > 0);
@@ -776,7 +740,7 @@
       .filter(p => p.name.length > 0);
 
     saveState();
-    render(); // QA auto-updates for all customers because they read shared library
+    render();
     alert("QA library saved (auto-applies to ALL customers).");
   };
 
@@ -806,10 +770,7 @@
         `;
         const inp = row.querySelector("[data-name]");
         inp.addEventListener("input", ()=> { state.qaLibrary.approvers[idx] = inp.value; });
-        row.querySelector("[data-del]").onclick = () => {
-          state.qaLibrary.approvers.splice(idx,1);
-          renderQALibraryEditor();
-        };
+        row.querySelector("[data-del]").onclick = () => { state.qaLibrary.approvers.splice(idx,1); renderQALibraryEditor(); };
         apprHost.appendChild(row);
       });
     }
@@ -873,12 +834,7 @@
           `;
           const ctext = row.querySelector("[data-ctext]");
           ctext.addEventListener("input", ()=> { ch.text = ctext.value; });
-
-          row.querySelector("[data-del]").onclick = () => {
-            p.checks.splice(cIdx,1);
-            renderQALibraryEditor();
-          };
-
+          row.querySelector("[data-del]").onclick = () => { p.checks.splice(cIdx,1); renderQALibraryEditor(); };
           checksHost.appendChild(row);
         });
       }
@@ -951,24 +907,112 @@
     });
   }
 
-  // ----------------- QA actions -----------------
-  $("qaAddIssueBtn").onclick = () => {
+  // ----------------- Issues (per phase) + Issue Report -----------------
+  function addIssueForPhase(phaseName){
     const c = getActiveCustomer();
     if (!c) return;
-    const title = prompt("Issue title (short):");
+
+    const title = prompt(`Issue title (Phase: ${phaseName})`);
     if (!title || !title.trim()) return;
     const desc = prompt("Issue details (optional):") || "";
-    const phaseName = prompt("Phase name (type exactly, or leave blank):") || "";
+
     c.qa.issues.push({
       id: uid("iss"),
-      phaseName: phaseName.trim(),
+      phaseName: String(phaseName||"").trim(),
       title: title.trim(),
       desc: desc.trim(),
       status: "Open",
       createdAt: new Date().toISOString()
     });
+
     saveState();
     renderQA();
+  }
+
+  function buildIssueReport(){
+    const c = getActiveCustomer();
+    if (!c) return;
+
+    const openOnly = $("issuesOpenOnly").checked;
+    const issues = (c.qa.issues||[]).slice();
+
+    const filtered = openOnly
+      ? issues.filter(i => (i.status||"Open") !== "Resolved")
+      : issues;
+
+    // sort by phase then created date
+    filtered.sort((a,b)=>{
+      const pa = (a.phaseName||"").toLowerCase();
+      const pb = (b.phaseName||"").toLowerCase();
+      if (pa !== pb) return pa.localeCompare(pb);
+      return String(a.createdAt||"").localeCompare(String(b.createdAt||""));
+    });
+
+    const host = $("issueReportBody");
+    host.innerHTML = "";
+
+    if (!filtered.length){
+      host.innerHTML = `<div class="muted">No issues found.</div>`;
+      return;
+    }
+
+    filtered.forEach(i=>{
+      const isResolved = (i.status||"Open") === "Resolved";
+      const row = document.createElement("div");
+      row.className = "mrow " + (isResolved ? "complete" : "pending");
+      row.innerHTML = `
+        <div class="row wrap" style="justify-content:space-between; gap:10px">
+          <div style="min-width:0">
+            <div class="title">${escapeHtml(i.phaseName ? `[${i.phaseName}] ` : "")}${escapeHtml(i.title)}</div>
+            ${i.desc ? `<div class="small" style="white-space:pre-wrap">${escapeHtml(i.desc)}</div>` : ""}
+            <div class="small">Status: ${escapeHtml(i.status||"Open")} • Added: ${i.createdAt ? new Date(i.createdAt).toLocaleString() : "—"}</div>
+          </div>
+          <div class="row wrap" style="justify-content:flex-end">
+            <button class="btn secondary" data-toggle>Toggle</button>
+            <button class="btn danger" data-del>Delete</button>
+          </div>
+        </div>
+      `;
+      row.querySelector("[data-toggle]").onclick = () => {
+        i.status = isResolved ? "Open" : "Resolved";
+        saveState();
+        buildIssueReport();
+        renderQA();
+      };
+      row.querySelector("[data-del]").onclick = () => {
+        if (!confirm("Delete this issue?")) return;
+        c.qa.issues = c.qa.issues.filter(x => x.id !== i.id);
+        saveState();
+        buildIssueReport();
+        renderQA();
+      };
+      host.appendChild(row);
+    });
+  }
+
+  $("qaIssueReportBtn").onclick = () => { buildIssueReport(); $("dlgIssueReport").showModal(); };
+  $("closeIssueReportBtn").onclick = () => $("dlgIssueReport").close();
+  $("issuesOpenOnly").onchange = () => buildIssueReport();
+
+  $("copyIssueReportBtn").onclick = async () => {
+    const c = getActiveCustomer();
+    if (!c) return;
+    const openOnly = $("issuesOpenOnly").checked;
+
+    let issues = (c.qa.issues||[]).slice();
+    if (openOnly) issues = issues.filter(i => (i.status||"Open") !== "Resolved");
+
+    issues.sort((a,b)=>{
+      const pa = (a.phaseName||"").toLowerCase();
+      const pb = (b.phaseName||"").toLowerCase();
+      if (pa !== pb) return pa.localeCompare(pb);
+      return String(a.createdAt||"").localeCompare(String(b.createdAt||""));
+    });
+
+    const lines = issues.map(i => `- ${i.phaseName ? `[${i.phaseName}] ` : ""}${i.title}${i.desc ? ` — ${i.desc}` : ""} (${i.status||"Open"})`);
+    const text = `Issue Report — ${c.name}\n${lines.join("\n") || "(none)"}`;
+    try { await navigator.clipboard.writeText(text); alert("Copied to clipboard."); }
+    catch { alert("Copy failed (browser blocked it)."); }
   };
 
   $("qaCopyOpenIssuesBtn").onclick = async () => {
@@ -1104,10 +1148,7 @@ Please confirm receipt and proposed correction timeline.`;
     const c = getActiveCustomer();
     if (!c) return;
 
-    const map = [
-      ["dName","name"], ["dPhone","phone"], ["dEmail","email"], ["dAddress","address"], ["dStartDate","startDate"]
-    ];
-
+    const map = [["dName","name"], ["dPhone","phone"], ["dEmail","email"], ["dAddress","address"], ["dStartDate","startDate"]];
     map.forEach(([id,key])=>{
       const el = $(id);
       el.value = c[key] || "";
@@ -1150,7 +1191,6 @@ Please confirm receipt and proposed correction timeline.`;
 
     [...c.milestones].forEach(m=>{
       const isOverdue = !m.completed && m.dueDate && m.dueDate < today;
-
       const div = document.createElement("div");
       div.className = "mrow " + (m.completed ? "complete" : (isOverdue ? "overdue" : "pending"));
 
@@ -1178,17 +1218,13 @@ Please confirm receipt and proposed correction timeline.`;
         m.completed = !m.completed;
         m.completedAt = m.completed ? new Date().toISOString() : "";
         saveState();
-        renderMilestones();
-        renderCustomers();
-        renderStats();
+        renderMilestones(); renderCustomers(); renderStats();
       };
 
       div.querySelector("[data-due]").onchange = (e) => {
         m.dueDate = e.target.value || "";
         saveState();
-        renderMilestones();
-        renderCustomers();
-        renderStats();
+        renderMilestones(); renderCustomers(); renderStats();
       };
 
       div.querySelector("[data-notes]").onclick = () => {
@@ -1203,9 +1239,7 @@ Please confirm receipt and proposed correction timeline.`;
         if (!confirm("Delete this milestone?")) return;
         c.milestones = c.milestones.filter(x => x.id !== m.id);
         saveState();
-        renderMilestones();
-        renderCustomers();
-        renderStats();
+        renderMilestones(); renderCustomers(); renderStats();
       };
 
       host.appendChild(div);
@@ -1263,6 +1297,7 @@ Please confirm receipt and proposed correction timeline.`;
             <div class="small">${phaseDone}/${phaseTotal} complete • ${phasePct}%</div>
           </div>
           <div class="row wrap" style="justify-content:flex-end">
+            <button class="btn secondary" data-addissue>+ Issue</button>
             <button class="btn secondary" data-markall>Mark all</button>
             <button class="btn secondary" data-clear>Clear</button>
           </div>
@@ -1306,6 +1341,9 @@ Please confirm receipt and proposed correction timeline.`;
         </div>
       `;
 
+      // + Issue attaches to this phase
+      card.querySelector("[data-addissue]").onclick = () => addIssueForPhase(phase.name);
+
       // checks
       const checksHost = card.querySelector("[data-checks]");
       if (!phase.checks.length){
@@ -1330,7 +1368,7 @@ Please confirm receipt and proposed correction timeline.`;
         });
       }
 
-      // phase notes (NO rerender on typing)
+      // phase notes (no rerender on typing)
       const notesEl = card.querySelector("[data-notes]");
       notesEl.value = c.qa.notes?.[phase.id] || "";
       notesEl.addEventListener("input", () => {
@@ -1391,7 +1429,7 @@ Please confirm receipt and proposed correction timeline.`;
         renderQA();
       };
 
-      // issues tagged by phaseName match (simple + stable)
+      // issues tagged to this phase (case-insensitive)
       const issuesHost = card.querySelector("[data-issues]");
       const issues = (c.qa.issues||[]).filter(i => (i.phaseName||"").toLowerCase() === (phase.name||"").toLowerCase());
       if (!issues.length){
@@ -1434,7 +1472,7 @@ Please confirm receipt and proposed correction timeline.`;
     });
   }
 
-  // ----------------- Initial render -----------------
+  // ----------------- Init -----------------
   render();
 </script>
 </body>
